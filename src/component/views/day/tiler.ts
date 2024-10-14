@@ -1,0 +1,282 @@
+import { arrayToMap } from "@/core/utils";
+
+type EventType = {
+  priority?: number;
+  startsAt: Date;
+  endsAt: Date;
+};
+
+type Tile<Event extends EventType> = {
+  id: number;
+  columnIndex: number;
+  geometry: {
+    xOffset: number;
+    width: number;
+    yStart: number;
+    yEnd: number;
+  };
+  link: {
+    next: Set<Tile<Event>>;
+    back: Set<Tile<Event>>;
+  };
+  event: Event;
+};
+
+type Column<Event extends EventType> = {
+  bottomEnd: Date;
+  tiles: Tile<Event>[];
+};
+
+type TilerConfig = {
+  maxPerSlot: number;
+  slotDuration: number;
+};
+
+const UNSET_VALUE = -1;
+
+export class ColumnTiler<Event extends EventType> {
+  private minutesInDay = 1440;
+  private slotsInDay: number;
+  constructor(
+    private readonly events: Event[],
+    private readonly config: TilerConfig
+  ) {
+    this.slotsInDay = Math.floor(this.minutesInDay / this.config.slotDuration);
+  }
+
+  private getMinutesPassedInDay(time: Date): number {
+    return time.getHours() * 60 + time.getMinutes();
+  }
+
+  private getYOffset(time: Date): number {
+    return (
+      Math.floor(
+        (this.getMinutesPassedInDay(time) / this.minutesInDay) * this.slotsInDay
+      ) + 1
+    );
+  }
+
+  private createTiles(events: Event[]): Tile<Event>[] {
+    const tiles: Tile<Event>[] = events.map((event, i) => ({
+      id: i + 1,
+      event,
+      link: {
+        next: new Set(),
+        back: new Set(),
+      },
+      columnIndex: UNSET_VALUE,
+      geometry: {
+        xOffset: UNSET_VALUE,
+        width: UNSET_VALUE,
+        yStart: this.getYOffset(event.startsAt),
+        yEnd: this.getYOffset(event.endsAt),
+      },
+    }));
+
+    return tiles;
+  }
+
+  private setColumns(tiles: Tile<Event>[]) {
+    const columns: Column<Event>[] = [];
+
+    tiles.forEach((tile) => {
+      const event = tile.event;
+      let colIdx = 0;
+
+      // Find the column where the current tile can fit
+      while (columns[colIdx] && columns[colIdx].bottomEnd > event.startsAt)
+        colIdx++;
+
+      // if (colIdx + 1 > this.config.maxPerSlot) Discard Event
+
+      tile.columnIndex = colIdx;
+
+      // Add to either a new column or existing column
+      if (!columns[colIdx]) {
+        columns[colIdx] = { bottomEnd: event.endsAt, tiles: [tile] };
+      } else {
+        columns[colIdx].tiles.push(tile);
+        columns[colIdx].bottomEnd = event.endsAt;
+      }
+
+      // Get connected tile from last column and add links
+      const lastCollidingTile = columns[colIdx - 1]?.tiles.at(-1);
+      if (lastCollidingTile) {
+        lastCollidingTile.link.next.add(tile);
+        tile.link.back.add(lastCollidingTile);
+      }
+
+      // Get ahead of line blocking tile
+      let blockingColIdx = colIdx + 1;
+      while (columns[blockingColIdx]) {
+        if (+columns[blockingColIdx].bottomEnd > +event.startsAt) {
+          const blockingTile = columns[blockingColIdx].tiles.at(-1)!;
+          tile.link.next.add(blockingTile);
+          blockingTile.link.back.add(tile);
+          // Remove crossing link
+          if (lastCollidingTile) {
+            lastCollidingTile.link.next.delete(blockingTile);
+            blockingTile.link.back.delete(lastCollidingTile);
+          }
+          break;
+        }
+        blockingColIdx++;
+      }
+    });
+  }
+
+  private calculateTileWidth(
+    connectedTiles: Tile<Event>[],
+    tileIdx: number,
+    tileXOffset: number
+  ): number {
+    // If there is tile ahead of line blocking the given tile
+    for (let i = tileIdx + 1; i < connectedTiles.length; ++i) {
+      if (connectedTiles[i].geometry.xOffset !== UNSET_VALUE)
+        return (
+          (connectedTiles[i].geometry.xOffset - tileXOffset) / (i - tileIdx)
+        );
+    }
+
+    // Else calculate remaining proportional width
+    let unsetTiles = 0,
+      occupiedWidth = 0;
+    for (let i = 0; i < connectedTiles.length; ++i) {
+      if (connectedTiles[i].geometry.width !== UNSET_VALUE)
+        occupiedWidth += connectedTiles[i].geometry.width;
+      else ++unsetTiles;
+    }
+
+    return (1 - occupiedWidth) / (unsetTiles || 1);
+  }
+
+  getLayoutTiles(): Tile<Event>[] {
+    // Create tiles from events
+    const tiles = this.createTiles(this.events);
+
+    // Sort tiles by earliest and lengthiest first
+    tiles.sort(
+      (tileA, tileB) =>
+        tileA.geometry.yStart - tileB.geometry.yStart ||
+        tileB.geometry.yEnd - tileA.geometry.yEnd
+    );
+
+    // Add forward and backward links between tiles and arrange in columns
+    this.setColumns(tiles);
+
+    // Find the longest connected tiles with all tiles covered
+    const connectedComponents = new ConnectedComponents(tiles);
+    connectedComponents.crawl();
+    const connectedTiles = connectedComponents.getLongestPaths();
+
+    // Assign x-axis geometry values
+    connectedTiles.forEach((tiles) => {
+      tiles.forEach((tile, idx) => {
+        if (tile.geometry.width === UNSET_VALUE) {
+          const previousTile = tiles[idx - 1];
+
+          // Calculate the nudge amount based on previous tile in line
+          const offset = previousTile
+            ? previousTile.geometry.width + previousTile.geometry.xOffset
+            : 0;
+
+          tile.geometry.xOffset = offset;
+          tile.geometry.width = this.calculateTileWidth(tiles, idx, offset);
+        }
+      });
+    });
+
+    return tiles;
+  }
+}
+
+type NodeType = {
+  id: string | number;
+  link: {
+    next: Set<NodeType>;
+    back: Set<NodeType>;
+  };
+};
+type LongestPath = { neighbor: NodeType | null; length: number };
+
+class ConnectedComponents<Node extends NodeType> {
+  private longestPaths: {
+    forward: Map<Node["id"], LongestPath>;
+    backward: Map<Node["id"], LongestPath>;
+  };
+  private nodesById: Partial<Record<Node["id"], Node>>;
+  constructor(private readonly nodes: Node[]) {
+    this.longestPaths = { forward: new Map(), backward: new Map() };
+
+    this.nodesById = arrayToMap(nodes, (n) => n.id);
+  }
+
+  private getLongestPathNeighbor(
+    node: NodeType,
+    neighborKey: "next" | "back",
+    cache: Map<Node["id"], LongestPath>
+  ): LongestPath {
+    const cachedLongestPath = cache.get(node.id);
+    if (cachedLongestPath) return cachedLongestPath;
+
+    let longestPath: LongestPath = { neighbor: null, length: 0 };
+    for (let neighbor of node.link[neighborKey]) {
+      const neighborsLongestPath = this.getLongestPathNeighbor(
+        neighbor,
+        neighborKey,
+        cache
+      );
+      if (neighborsLongestPath.length + 1 > longestPath.length)
+        longestPath = { neighbor, length: neighborsLongestPath.length + 1 };
+    }
+
+    cache.set(node.id, longestPath);
+    return longestPath;
+  }
+
+  private getFlattenedPath(
+    node: Node,
+    direction: "forward" | "backward"
+  ): Node["id"][] {
+    const path: Node["id"][] = [];
+
+    const longestPaths = this.longestPaths[direction];
+
+    let neighbor = longestPaths.get(node.id)?.neighbor;
+    while (neighbor) {
+      path.push(neighbor.id);
+      neighbor = longestPaths.get(neighbor.id)?.neighbor;
+    }
+
+    return path;
+  }
+
+  /** Finds longest forward and backend paths */
+  crawl() {
+    this.nodes.forEach((n) =>
+      this.getLongestPathNeighbor(n, "next", this.longestPaths.forward)
+    );
+
+    this.nodes.forEach((n) =>
+      this.getLongestPathNeighbor(n, "back", this.longestPaths.backward)
+    );
+  }
+
+  getLongestPaths() {
+    const seen = new Set<string>();
+    const paths: Node[][] = [];
+    for (const node of this.nodes) {
+      const forwardPath = this.getFlattenedPath(node, "forward");
+      const backwardPath = this.getFlattenedPath(node, "backward").reverse();
+
+      const path = backwardPath.concat([node.id]).concat(forwardPath);
+
+      const key = path.join();
+      if (!seen.has(key)) {
+        seen.add(key);
+        paths.push(path.map((nodeId) => this.nodesById[nodeId]!));
+      }
+    }
+    return paths.sort((a, b) => b.length - a.length);
+  }
+}

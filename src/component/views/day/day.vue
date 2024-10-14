@@ -31,24 +31,20 @@
       </div>
 
       <div class="timeline-events">
-        <div class="day-column" v-for="day in layoutEventTiles" :key="day.id">
+        <div class="day-column">
           <div class="background-events-layer events-layer"></div>
           <div class="tilled-events-layer events-layer">
             <div
-              v-for="tile in mappedValues"
+              v-for="tile in layoutEventTiles"
               :key="tile.id"
               class="event-tile"
-              :data-width="tile.width"
-              :data-offset="tile.offset"
               :style="{
-                gridRowStart: tile.start,
-                gridRowEnd: tile.end,
+                gridRowStart: tile.geometry.yStart,
+                gridRowEnd: tile.geometry.yEnd,
                 margin: '1px',
-                marginTop: tile.start & 1 ? '1px' : '1px',
-                marginBottom: tile.end & 1 ? '1px' : '1px',
                 position: 'relative',
-                width: `calc(${tile.width * 100 + '%'} - 2px)`,
-                left: `calc(${tile.offset * 100 + '%'} + 1px)`,
+                width: `calc(${tile.geometry.width * 100 + '%'} - 2px)`,
+                left: `calc(${tile.geometry.xOffset * 100 + '%'} + 1px)`,
               }"
             >
               <slot name="event-tile" v-bind="{ event: tile.event, tile }" />
@@ -64,6 +60,7 @@
 import { computed, inject, onUnmounted, ref, watch } from "vue";
 import type { CalendarEvent, EventTileSlotProps, SlotDuration } from "@/types";
 import { TimeUtils } from "@/core/time";
+import { ColumnTiler } from "./tiler";
 
 export type DayViewProps = {
   events: Array<CalendarEvent<T>>;
@@ -112,60 +109,16 @@ const eventsByDay = computed(() => {
   return map;
 });
 
-const columnedEvents = computed(() => {
-  const minutesInDay = 1440;
-  const slotsInDay = Math.floor(minutesInDay / props.slotDuration);
-  const getSlot = (time: Date) => {
-    return (
-      Math.floor((t.getMinutesPassedInDay(time) / minutesInDay) * slotsInDay) +
-      1
-    );
-  };
-});
-
 type LayoutEventTiles = Array<EventTileSlotProps<T>>;
 const layoutEventTiles = computed(() => {
-  const minutesInDay = 1440;
-  const slotsInDay = Math.floor(minutesInDay / props.slotDuration);
-
-  const getSlot = (time: Date) => {
-    return (
-      Math.floor((t.getMinutesPassedInDay(time) / minutesInDay) * slotsInDay) +
-      1
-    );
-  };
-
-  const eventSeriesByDay = Object.entries(eventsByDay.value).map(
-    ([date, events]) => {
-      const sortedEvents = events;
-      // !.toSorted(
-      //   (e1, e2) =>
-      //     getSlot(e1.startsAt) - getSlot(e2.startsAt) ||
-      //     getSlot(e2.endsAt) - getSlot(e1.endsAt)
-      // );
-
-      return {
-        id: date,
-        events: sortedEvents!.map((event) => {
-          const rowStart = getSlot(event.startsAt);
-          const rowEnd = getSlot(event.endsAt);
-
-          return {
-            event: event,
-            tile: {
-              slot: { start: rowStart, end: rowEnd },
-              continuous: {
-                start: t.isBefore(event.startsAt, t.startOfDay(props.date)),
-                end: t.isAfter(event.endsAt, t.endOfDay(props.date)),
-              },
-            },
-          };
-        }),
-      };
-    }
-  );
-
-  return eventSeriesByDay;
+  const start = performance.now();
+  const tiler = new ColumnTiler(props.events, {
+    maxPerSlot: 10,
+    slotDuration: 60,
+  });
+  const layoutTiles = tiler.getLayoutTiles();
+  console.table({ time: performance.now() - start });
+  return layoutTiles;
 });
 
 const markerRef = ref<HTMLElement>();
@@ -184,240 +137,6 @@ const markerPosition = computed(() => {
   const elapsedMinutes = (+now.value - +start) / (1000 * 60);
   return `${((elapsedMinutes / 1440) * 100).toFixed(1)}%`;
 });
-
-// [TODO]: Use CSS Grid for top to bottom placement
-// and absolute positioning and % width for left to right
-
-// Assuming events are sorted by start time and then end time in reverse
-// Such that longer earlier starting events will always come earlier in line
-
-function arrayToMap<K extends PropertyKey, T>(
-  items: Array<T>,
-  keySelector: (item: T, index: number) => K
-): Partial<Record<K, T>> {
-  const map: Partial<Record<K, T>> = {};
-  items.forEach((item, i) => {
-    const key = keySelector(item, i);
-    map[key] = item;
-  });
-  return map;
-}
-
-type NodeType = {
-  id: string | number;
-  next: Set<NodeType>;
-  back: Set<NodeType>;
-};
-type LongestPath = { neighbor: NodeType | null; length: number };
-class PathFinder<Node extends NodeType> {
-  private longestPaths: {
-    forward: Map<Node["id"], LongestPath>;
-    backward: Map<Node["id"], LongestPath>;
-  };
-  private nodesById: Partial<Record<Node["id"], Node>>;
-  constructor(private readonly nodes: Node[]) {
-    this.longestPaths = { forward: new Map(), backward: new Map() };
-
-    this.nodesById = arrayToMap(nodes, (n) => n.id);
-  }
-
-  private getLongestPathNeighbor(
-    node: NodeType,
-    neighborKey: "next" | "back",
-    cache: Map<Node["id"], LongestPath>
-  ): LongestPath {
-    const cachedLongestPath = cache.get(node.id);
-    if (cachedLongestPath) return cachedLongestPath;
-
-    let longestPath: LongestPath = { neighbor: null, length: 0 };
-    for (let neighbor of node[neighborKey]) {
-      const neighborsLongestPath = this.getLongestPathNeighbor(
-        neighbor,
-        neighborKey,
-        cache
-      );
-      if (neighborsLongestPath.length + 1 > longestPath.length)
-        longestPath = { neighbor, length: neighborsLongestPath.length + 1 };
-    }
-
-    cache.set(node.id, longestPath);
-    return longestPath;
-  }
-
-  private getFlattenedPath(
-    node: Node,
-    direction: "forward" | "backward"
-  ): Node["id"][] {
-    const path: Node["id"][] = [];
-
-    const longestPaths = this.longestPaths[direction];
-
-    let neighbor = longestPaths.get(node.id)?.neighbor;
-    while (neighbor) {
-      path.push(neighbor.id);
-      neighbor = longestPaths.get(neighbor.id)?.neighbor;
-    }
-
-    return path;
-  }
-
-  crawl() {
-    this.nodes.forEach((n) =>
-      this.getLongestPathNeighbor(n, "next", this.longestPaths.forward)
-    );
-
-    this.nodes.forEach((n) =>
-      this.getLongestPathNeighbor(n, "back", this.longestPaths.backward)
-    );
-  }
-
-  getLongestPaths() {
-    const seen = new Set<string>();
-    const paths: Node[][] = [];
-    for (const node of this.nodes) {
-      const forwardPath = this.getFlattenedPath(node, "forward");
-      const backwardPath = this.getFlattenedPath(node, "backward").reverse();
-
-      const path = backwardPath.concat([node.id]).concat(forwardPath);
-
-      const key = path.join();
-      if (!seen.has(key)) {
-        seen.add(key);
-        paths.push(path.map((nodeId) => this.nodesById[nodeId]!));
-      }
-    }
-    return paths.sort((a, b) => b.length - a.length);
-  }
-}
-
-const mappedValues = computed(() => {
-  type Column = {
-    bottomEnd: Date;
-    tiles: Tile[];
-  };
-
-  type Tile = {
-    id: string;
-    event: CalendarEvent<T>;
-    offset: number;
-    width: number;
-    next: Set<Tile>;
-    back: Set<Tile>;
-    columnIdx: number;
-    start: number;
-    end: number;
-  };
-
-  const minutesInDay = 1440;
-  const slotsInDay = Math.floor(minutesInDay / props.slotDuration);
-
-  const getSlot = (time: Date) => {
-    return (
-      Math.floor((t.getMinutesPassedInDay(time) / minutesInDay) * slotsInDay) +
-      1
-    );
-  };
-
-  const columns: Column[] = [];
-  const tiles: Tile[] = props.events.map((event) => ({
-    id: event.id,
-    event,
-    next: new Set(),
-    back: new Set(),
-    offset: -1,
-    width: -1,
-    columnIdx: 0,
-    start: getSlot(event.startsAt),
-    end: getSlot(event.endsAt),
-  }));
-
-  // Find the column in which this event can be placed
-  // building forward and backward links on the way
-  tiles.forEach((tile) => {
-    const event = tile.event;
-    let colIdx = 0;
-
-    while (columns[colIdx] && columns[colIdx].bottomEnd > event.startsAt) {
-      colIdx++;
-    }
-    if (!columns[colIdx]) {
-      columns[colIdx] = { bottomEnd: event.endsAt, tiles: [tile] };
-    } else {
-      columns[colIdx].tiles.push(tile);
-      columns[colIdx].bottomEnd = event.endsAt;
-    }
-
-    tile.columnIdx = colIdx;
-
-    // Get last attached tile
-    const lastCollidingTile = columns[colIdx - 1]?.tiles.at(-1);
-    if (lastCollidingTile) {
-      lastCollidingTile.next.add(tile);
-      tile.back.add(lastCollidingTile);
-    }
-
-    // Get next blocking tile
-    let blockingColIdx = colIdx + 1;
-    while (columns[blockingColIdx]) {
-      if (+columns[blockingColIdx].bottomEnd > +tile.event.startsAt) {
-        const blockingTile = columns[blockingColIdx].tiles.at(-1)!;
-        tile.next.add(blockingTile);
-        blockingTile.back.add(tile);
-        if (lastCollidingTile) {
-          lastCollidingTile.next.delete(blockingTile);
-          blockingTile.back.delete(lastCollidingTile);
-        }
-        break;
-      }
-      blockingColIdx++;
-    }
-  });
-
-  function calculateBlockingDx(path: Tile[], tileIdx: number, offset: number) {
-    for (let i = tileIdx + 1; i < path.length; ++i) {
-      if (path[i].offset !== -1) {
-        console.log("blocking");
-        return (path[i].offset - offset) / (i - tileIdx);
-      }
-    }
-  }
-  function calculateNonBlockingDx(path: Tile[]) {
-    let unsetTiles = 0,
-      occupiedWidth = 0;
-
-    for (let i = 0; i < path.length; ++i) {
-      if (path[i].width !== -1) {
-        occupiedWidth += path[i].width;
-      } else {
-        ++unsetTiles;
-      }
-    }
-
-    return (1 - occupiedWidth) / (unsetTiles || 1);
-  }
-
-  const pathFinder = new PathFinder(tiles);
-  pathFinder.crawl();
-
-  const paths = pathFinder.getLongestPaths();
-
-  paths.forEach((path) => {
-    path.forEach((tile, i) => {
-      if (tile.width === -1) {
-        const lastTile = path[i - 1];
-
-        const offset = lastTile ? lastTile.width + lastTile.offset : 0;
-        tile.offset = offset;
-        tile.width =
-          calculateBlockingDx(path, i, offset) ?? calculateNonBlockingDx(path);
-      }
-    });
-  });
-
-  return tiles;
-});
-
-watch(mappedValues, () => {});
 </script>
 
 <style scoped lang="scss">

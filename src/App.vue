@@ -21,7 +21,7 @@ import XCal from "@/component/x-cal.vue";
 import { createMonthData, createDayData } from "@/tests/data";
 import { format } from "date-fns";
 
-const mockEvents = createDayData(new Date(), 100);
+const mockEvents = createDayData(new Date(), 20);
 
 // console.log(
 //   mockEvents.map((e) => {
