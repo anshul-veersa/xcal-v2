@@ -12,18 +12,14 @@
 import { computed, inject, onUnmounted, ref } from "vue";
 import { TimeUtils } from "@/core/time";
 
-export type TimeMarkerProps = {};
-
-const props = defineProps<TimeMarkerProps>();
-
 const t = inject<TimeUtils>("time_utils")!;
 
 const markerRef = ref<HTMLElement>();
 
-const now = ref(new Date());
+const now = ref(t.now);
 const timerId = setInterval(() => {
-  now.value = new Date();
-}, 1000);
+  now.value = t.now;
+}, 2000);
 onUnmounted(() => {
   clearInterval(timerId);
 });

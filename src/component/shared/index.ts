@@ -1,1 +1,1 @@
-export { default as Marker } from "./time-marker.vue";
+export { default as TimeMarker } from "./time-marker.vue";

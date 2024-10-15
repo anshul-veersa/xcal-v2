@@ -17,7 +17,11 @@ import { provide, computed, defineAsyncComponent } from "vue";
 import { TimeUtils } from "@/core/time";
 
 import type { CalendarEvent } from "@/types";
-import type { MonthViewProps, DayViewProps } from "@/component/views";
+import type {
+  MonthViewProps,
+  DayViewProps,
+  WeekViewProps,
+} from "@/component/views";
 
 type Props<T> = {
   /** Array of events to show on the calendar. */
@@ -27,7 +31,7 @@ type Props<T> = {
    * - Week
    * - Day
    */
-  view?: "month" | "day";
+  view?: "month" | "week" | "day";
   /** Current date to show. */
   date?: Date;
   /** Additional configuration for the calendar. */
@@ -67,6 +71,17 @@ const Views = {
         showSiblingMonths: true,
       },
     } satisfies MonthViewProps,
+  },
+  week: {
+    name: "week",
+    component: defineAsyncComponent(
+      () => import("@/component/views/week/week.vue")
+    ),
+    props: {
+      events: props.events,
+      date: props.date,
+      slotDuration: props.config.slotDuration,
+    } satisfies WeekViewProps,
   },
   day: {
     name: "day",

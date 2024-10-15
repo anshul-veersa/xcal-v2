@@ -53,7 +53,7 @@
 <script setup lang="ts" generic="T">
 import { computed, inject } from "vue";
 import { TimeUtils } from "@/core/time";
-import type { CalendarEvent, EventTileSlotProps } from "@/types";
+import type { CalendarEvent } from "@/types";
 import { MonthTiler } from "@/core/tilers";
 
 export type MonthViewProps = {

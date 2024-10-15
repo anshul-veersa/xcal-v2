@@ -2,7 +2,7 @@ import type { TimeUtils } from "@/core/time";
 import { arrayToMap, clamp } from "@/core/utils";
 import type { EventTile, EventType } from "@/types";
 
-type Tile<Event extends EventType> = {
+export type Tile<Event extends EventType> = {
   columnIndex: number;
   geometry: {
     xOffset: number;
