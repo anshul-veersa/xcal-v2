@@ -37,17 +37,17 @@ const slotIndicators = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-$slot-size: 36px;
+$slot-size: 12px;
 $separator-color: rgba(0, 0, 0, 0.2);
 $hour-indicator-height: 1px;
-$slot-size-minutes: 30;
+$slot-size-minutes: 15;
 $total-slots: 1440 / $slot-size-minutes;
 
 .indicators-layer {
   display: grid;
   grid-row-start: 1;
   grid-column: 1 / -1;
-  grid-template-rows: repeat(calc($total-slots / 2), calc($slot-size * 2));
+  grid-template-rows: repeat(calc($total-slots / 4), calc($slot-size * 4));
 }
 
 .hour-indicator {

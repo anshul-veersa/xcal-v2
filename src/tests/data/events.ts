@@ -25,8 +25,8 @@ export function createEvent<T>(
 
   return {
     id: faker.string.uuid(),
-    startsAt: roundToNearestMinutes(startsAt, { nearestTo: 30 }),
-    endsAt: roundToNearestMinutes(endsAt, { nearestTo: 30 }),
+    startsAt: roundToNearestMinutes(startsAt, { nearestTo: 1 }),
+    endsAt: roundToNearestMinutes(endsAt, { nearestTo: 1 }),
     data,
   };
 }

@@ -4,7 +4,10 @@
     <div class="day-layout">
       <SlotIndicatorsLayer />
 
-      <SlotsLayer :days="[props.date]" :slot-duration="props.slotDuration" />
+      <SlotsLayer
+        :columns="[{ date: props.date, id: null }]"
+        :slot-duration="props.slotDuration"
+      />
 
       <EventTilesLayer :layout-event-tiles="layoutEventTiles">
         <template #event-tile="slotProps">
@@ -34,6 +37,7 @@ import {
 export type DayViewProps = {
   events: Array<CalendarEvent<T>>;
   date: Date;
+  maxEventsPerSlot: number;
   slotDuration: SlotDuration;
 };
 const props = defineProps<DayViewProps>();
@@ -42,7 +46,7 @@ const t = inject<TimeUtils>("time_utils")!;
 
 const tiler = new DayTiler(
   {
-    maxPerSlot: 30,
+    maxPerSlot: props.maxEventsPerSlot,
     slotDuration: props.slotDuration,
   },
   t

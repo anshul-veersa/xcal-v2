@@ -42,11 +42,11 @@ const props = defineProps<{
 </script>
 
 <style scoped lang="scss">
-$slot-size: 36px;
+$slot-size: 12px;
 $spacer-right: 20px;
 $separator-color: rgba(0, 0, 0, 0.2);
 $hour-indicator-height: 1px;
-$slot-size-minutes: 30;
+$slot-size-minutes: 15;
 $total-slots: 1440 / $slot-size-minutes;
 
 .events-layer {

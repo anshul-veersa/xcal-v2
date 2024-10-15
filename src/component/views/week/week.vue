@@ -1,10 +1,12 @@
 <template>
-  <div class="day-view">
-    <header>All Day</header>
+  <div class="week-view">
     <div class="week-layout">
       <SlotIndicatorsLayer />
 
-      <SlotsLayer :days="weekDays" :slot-duration="props.slotDuration" />
+      <SlotsLayer
+        :columns="weekDays.map((date) => ({ date, id: null }))"
+        :slot-duration="props.slotDuration"
+      />
 
       <EventTilesLayer :layout-event-tiles="layoutEventTiles">
         <template #event-tile="slotProps">
@@ -34,6 +36,7 @@ import {
 export type WeekViewProps = {
   events: Array<CalendarEvent<T>>;
   date: Date;
+  maxEventsPerSlot: number;
   slotDuration: SlotDuration;
 };
 
@@ -50,7 +53,7 @@ const weekDays = computed(() => {
 
 const tiler = new DayTiler(
   {
-    maxPerSlot: 30,
+    maxPerSlot: props.maxEventsPerSlot,
     slotDuration: props.slotDuration,
   },
   t

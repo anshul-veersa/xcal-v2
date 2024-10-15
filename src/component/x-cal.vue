@@ -11,16 +11,16 @@
 </template>
 
 <script setup lang="ts" generic="T">
-import "@/styles/global.scss";
-
 import { provide, computed, defineAsyncComponent } from "vue";
 import { TimeUtils } from "@/core/time";
 
-import type { CalendarEvent } from "@/types";
+import type { CalendarEvent, SlotDuration } from "@/types";
 import type {
   MonthViewProps,
   DayViewProps,
   WeekViewProps,
+  GroupViewProps,
+  Group,
 } from "@/component/views";
 
 type Props<T> = {
@@ -31,12 +31,35 @@ type Props<T> = {
    * - Week
    * - Day
    */
-  view?: "month" | "week" | "day";
+  view: "month" | "week" | "day" | "group";
   /** Current date to show. */
   date?: Date;
-  /** Additional configuration for the calendar. */
+  /** Common configuration for the calendar. */
   config?: {
-    slotDuration: 15 | 30 | 60;
+    slotDuration?: SlotDuration;
+    maxEventsPerSlot?: number;
+    showCurrentTimeMarker?: boolean;
+  };
+
+  viewConfig?: {
+    day?: {
+      slotDuration?: SlotDuration;
+      maxEventsPerSlot?: number;
+    };
+    week?: {
+      slotDuration?: SlotDuration;
+      maxEventsPerSlot?: number;
+    };
+    month?: {
+      maxEventsPerSlot?: number;
+    };
+    group?: {
+      // view: 'day' | 'week' | 'month';
+      slotDuration?: SlotDuration;
+      maxEventsPerSlot?: number;
+      groupSelector?: (event: CalendarEvent<T>) => string;
+      groupSorter?: (groups: Group[]) => Group[];
+    };
   };
 
   /** Set locale */
@@ -51,6 +74,7 @@ const props = withDefaults(defineProps<Props<T>>(), {
   date: () => new Date(),
   config: () => ({
     slotDuration: 30,
+    maxEventsPerSlot: 30,
   }),
   locale: () => ({
     weekStartsOn: "monday",
@@ -67,7 +91,7 @@ const Views = {
       events: props.events,
       date: props.date,
       config: {
-        maxTilesPerDay: 10,
+        maxTilesPerDay: props.config.maxEventsPerSlot!,
         showSiblingMonths: true,
       },
     } satisfies MonthViewProps,
@@ -80,7 +104,8 @@ const Views = {
     props: {
       events: props.events,
       date: props.date,
-      slotDuration: props.config.slotDuration,
+      maxEventsPerSlot: props.config.maxEventsPerSlot!,
+      slotDuration: props.config.slotDuration!,
     } satisfies WeekViewProps,
   },
   day: {
@@ -91,8 +116,23 @@ const Views = {
     props: {
       events: props.events,
       date: props.date,
-      slotDuration: props.config.slotDuration,
+      maxEventsPerSlot: props.config.maxEventsPerSlot!,
+      slotDuration: props.config.slotDuration!,
     } satisfies DayViewProps,
+  },
+  group: {
+    name: "group",
+    component: defineAsyncComponent(
+      () => import("@/component/views/group/group.vue")
+    ),
+    props: {
+      events: props.events,
+      date: props.date,
+      maxEventsPerSlot: props.config.maxEventsPerSlot!,
+      slotDuration: props.config.slotDuration!,
+      groupSelector: props.viewConfig?.group?.groupSelector!,
+      groupSorter: props.viewConfig?.group?.groupSorter!,
+    } satisfies GroupViewProps,
   },
 } as const;
 
@@ -117,3 +157,7 @@ provide(
   })
 );
 </script>
+
+<style lang="scss">
+@import "@/styles/global.scss";
+</style>
