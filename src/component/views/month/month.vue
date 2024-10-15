@@ -54,6 +54,7 @@
 import { computed, inject } from "vue";
 import { TimeUtils } from "@/core/time";
 import type { CalendarEvent, EventTileSlotProps } from "@/types";
+import { MonthTiler } from "@/core/tilers";
 
 export type MonthViewProps = {
   events: Array<CalendarEvent<T>>;

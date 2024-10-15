@@ -10,20 +10,17 @@ export type CalendarEvent<T> = {
   };
 };
 
-export type EventTile = {
-  slot: {
-    start: number;
-    end: number;
-  };
-  continuous: {
-    start: boolean;
-    end: boolean;
-  };
-};
-
-export type EventTileSlotProps<T> = {
-  event: CalendarEvent<T>;
-  tile: EventTile;
-};
-
 export type SlotDuration = 1 | 5 | 10 | 15 | 30 | 60;
+
+export type EventType = {
+  id: number | string;
+  priority?: number;
+  startsAt: Date;
+  endsAt: Date;
+};
+
+export type EventTile<T extends EventType> = {
+  id: number;
+  continuous: { start: boolean; end: boolean };
+  event: T;
+};

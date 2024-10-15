@@ -9,3 +9,7 @@ export function arrayToMap<K extends PropertyKey, T>(
   });
   return map;
 }
+
+export function clamp(min: number, max: number, value: number) {
+  return Math.min(Math.max(value, min), max);
+}

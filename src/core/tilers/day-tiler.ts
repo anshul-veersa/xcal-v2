@@ -1,13 +1,8 @@
-import { arrayToMap } from "@/core/utils";
-
-type EventType = {
-  priority?: number;
-  startsAt: Date;
-  endsAt: Date;
-};
+import type { TimeUtils } from "@/core/time";
+import { arrayToMap, clamp } from "@/core/utils";
+import type { EventTile, EventType } from "@/types";
 
 type Tile<Event extends EventType> = {
-  id: number;
   columnIndex: number;
   geometry: {
     xOffset: number;
@@ -19,41 +14,43 @@ type Tile<Event extends EventType> = {
     next: Set<Tile<Event>>;
     back: Set<Tile<Event>>;
   };
-  event: Event;
-};
+} & EventTile<Event>;
 
 type Column<Event extends EventType> = {
   bottomEnd: Date;
-  tiles: Tile<Event>[];
+  lastTile: Tile<Event>;
 };
 
 type TilerConfig = {
+  /** Limit the maximum number of events that can appear in a single row */
   maxPerSlot: number;
+  /** Length or duration of a single slot in minutes */
   slotDuration: number;
 };
 
 const UNSET_VALUE = -1;
 
-export class ColumnTiler<Event extends EventType> {
+export class DayTiler<Event extends EventType> {
   private minutesInDay = 1440;
   private slotsInDay: number;
+  private range: { start: Date; end: Date } = {
+    start: new Date(),
+    end: new Date(),
+  };
   constructor(
-    private readonly events: Event[],
-    private readonly config: TilerConfig
+    private readonly config: TilerConfig,
+    private readonly time: TimeUtils
   ) {
     this.slotsInDay = Math.floor(this.minutesInDay / this.config.slotDuration);
   }
 
-  private getMinutesPassedInDay(time: Date): number {
-    return time.getHours() * 60 + time.getMinutes();
-  }
-
   private getYOffset(time: Date): number {
-    return (
-      Math.floor(
-        (this.getMinutesPassedInDay(time) / this.minutesInDay) * this.slotsInDay
-      ) + 1
+    const offsetMinutes = this.time.getTimeOffsetFromDateInMinutes(
+      this.range.start,
+      time
     );
+    const clampedOffset = clamp(0, this.minutesInDay, offsetMinutes);
+    return Math.floor((clampedOffset / this.minutesInDay) * this.slotsInDay);
   }
 
   private createTiles(events: Event[]): Tile<Event>[] {
@@ -71,9 +68,17 @@ export class ColumnTiler<Event extends EventType> {
         yStart: this.getYOffset(event.startsAt),
         yEnd: this.getYOffset(event.endsAt),
       },
+      continuous: {
+        start: this.time.isBefore(event.startsAt, this.range.start),
+        end: this.time.isAfter(event.endsAt, this.range.end),
+      },
     }));
 
-    return tiles;
+    const visibleTiles = tiles.filter(
+      (t) => t.geometry.yStart !== t.geometry.yEnd
+    );
+
+    return visibleTiles;
   }
 
   private setColumns(tiles: Tile<Event>[]) {
@@ -87,20 +92,20 @@ export class ColumnTiler<Event extends EventType> {
       while (columns[colIdx] && columns[colIdx].bottomEnd > event.startsAt)
         colIdx++;
 
-      // if (colIdx + 1 > this.config.maxPerSlot) Discard Event
+      if (colIdx + 1 > this.config.maxPerSlot) return;
 
       tile.columnIndex = colIdx;
 
       // Add to either a new column or existing column
       if (!columns[colIdx]) {
-        columns[colIdx] = { bottomEnd: event.endsAt, tiles: [tile] };
+        columns[colIdx] = { bottomEnd: event.endsAt, lastTile: tile };
       } else {
-        columns[colIdx].tiles.push(tile);
+        columns[colIdx].lastTile = tile;
         columns[colIdx].bottomEnd = event.endsAt;
       }
 
       // Get connected tile from last column and add links
-      const lastCollidingTile = columns[colIdx - 1]?.tiles.at(-1);
+      const lastCollidingTile = columns[colIdx - 1]?.lastTile;
       if (lastCollidingTile) {
         lastCollidingTile.link.next.add(tile);
         tile.link.back.add(lastCollidingTile);
@@ -110,7 +115,7 @@ export class ColumnTiler<Event extends EventType> {
       let blockingColIdx = colIdx + 1;
       while (columns[blockingColIdx]) {
         if (+columns[blockingColIdx].bottomEnd > +event.startsAt) {
-          const blockingTile = columns[blockingColIdx].tiles.at(-1)!;
+          const blockingTile = columns[blockingColIdx].lastTile;
           tile.link.next.add(blockingTile);
           blockingTile.link.back.add(tile);
           // Remove crossing link
@@ -123,6 +128,8 @@ export class ColumnTiler<Event extends EventType> {
         blockingColIdx++;
       }
     });
+
+    return tiles.filter((tile) => tile.columnIndex !== UNSET_VALUE);
   }
 
   private calculateTileWidth(
@@ -150,11 +157,16 @@ export class ColumnTiler<Event extends EventType> {
     return (1 - occupiedWidth) / (unsetTiles || 1);
   }
 
-  getLayoutTiles(): Tile<Event>[] {
-    // Create tiles from events
-    const tiles = this.createTiles(this.events);
+  getLayoutTiles(events: Event[], options: { date: Date }): Tile<Event>[] {
+    this.range = {
+      start: this.time.startOfDay(options.date),
+      end: this.time.endOfDay(options.date),
+    };
 
-    // Sort tiles by earliest and lengthiest first
+    // Create tiles from events
+    const tiles = this.createTiles(events);
+
+    // Arrange tiles by earliest and lengthiest first
     tiles.sort(
       (tileA, tileB) =>
         tileA.geometry.yStart - tileB.geometry.yStart ||
@@ -162,26 +174,28 @@ export class ColumnTiler<Event extends EventType> {
     );
 
     // Add forward and backward links between tiles and arrange in columns
-    this.setColumns(tiles);
+    const columnedTiles = this.setColumns(tiles);
 
     // Find the longest connected tiles with all tiles covered
-    const connectedComponents = new ConnectedComponents(tiles);
+    const connectedComponents = new ConnectedComponents(columnedTiles);
     connectedComponents.crawl();
     const connectedTiles = connectedComponents.getLongestPaths();
 
     // Assign x-axis geometry values
     connectedTiles.forEach((tiles) => {
       tiles.forEach((tile, idx) => {
+        // Calculate the nudge amount based on previous tile in line
+        const previousTile = tiles[idx - 1];
         if (tile.geometry.width === UNSET_VALUE) {
-          const previousTile = tiles[idx - 1];
-
-          // Calculate the nudge amount based on previous tile in line
-          const offset = previousTile
+          tile.geometry.xOffset = previousTile
             ? previousTile.geometry.width + previousTile.geometry.xOffset
             : 0;
 
-          tile.geometry.xOffset = offset;
-          tile.geometry.width = this.calculateTileWidth(tiles, idx, offset);
+          tile.geometry.width = this.calculateTileWidth(
+            tiles,
+            idx,
+            tile.geometry.xOffset
+          );
         }
       });
     });

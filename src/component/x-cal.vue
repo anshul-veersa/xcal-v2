@@ -87,6 +87,12 @@ const emit = defineEmits<{
   eventUpdate: [];
 }>();
 
+if (props.events.length > 1000) {
+  console.warn(
+    `A large number of passed events (received ${props.events.length} events) can degrade performance of XCal. Consider limiting the number of events.`
+  );
+}
+
 provide(
   "time_utils",
   new TimeUtils({

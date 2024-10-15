@@ -39,8 +39,8 @@
               :key="tile.id"
               class="event-tile"
               :style="{
-                gridRowStart: tile.geometry.yStart,
-                gridRowEnd: tile.geometry.yEnd,
+                gridRowStart: tile.geometry.yStart + 1,
+                gridRowEnd: tile.geometry.yEnd + 1,
                 margin: '1px',
                 position: 'relative',
                 width: `calc(${tile.geometry.width * 100 + '%'} - 2px)`,
@@ -57,10 +57,10 @@
 </template>
 
 <script setup lang="ts" generic="T">
-import { computed, inject, onUnmounted, ref, watch } from "vue";
-import type { CalendarEvent, EventTileSlotProps, SlotDuration } from "@/types";
+import { computed, inject, onUnmounted, ref } from "vue";
+import type { CalendarEvent, SlotDuration } from "@/types";
 import { TimeUtils } from "@/core/time";
-import { ColumnTiler } from "./tiler";
+import { DayTiler } from "@/core/tilers";
 
 export type DayViewProps = {
   events: Array<CalendarEvent<T>>;
@@ -99,25 +99,17 @@ const slotIndicators = computed(() => {
   return indicators;
 });
 
-const eventsByDay = computed(() => {
-  const map: Record<string, CalendarEvent<T>[] | undefined> = {};
-  props.events.forEach((e) => {
-    const date = t.format(e.startsAt, "yyyy-MM-dd");
-    if (!map[date]) map[date] = [];
-    map[date]!.push(e);
-  });
-  return map;
-});
-
-type LayoutEventTiles = Array<EventTileSlotProps<T>>;
 const layoutEventTiles = computed(() => {
-  const start = performance.now();
-  const tiler = new ColumnTiler(props.events, {
-    maxPerSlot: 10,
-    slotDuration: 60,
-  });
-  const layoutTiles = tiler.getLayoutTiles();
-  console.table({ time: performance.now() - start });
+  const tiler = new DayTiler(
+    {
+      maxPerSlot: 30,
+      slotDuration: 30,
+    },
+    t
+  );
+
+  const layoutTiles = tiler.getLayoutTiles(props.events, { date: props.date });
+
   return layoutTiles;
 });
 
@@ -154,13 +146,13 @@ $slot-size: 36px;
 }
 
 .timeline-overlay-layer {
+  z-index: 2;
   height: 100%;
   grid-row-start: 1;
   grid-column-start: 2;
   position: relative;
 
   #current-time-marker {
-    // --marker-color: #ff1d02;
     --marker-color: #838383;
 
     height: 2px;
@@ -221,7 +213,6 @@ $slot-size: 36px;
 }
 
 .timeline-events {
-  overflow: scroll;
   width: 100%;
   z-index: 1;
   height: 100%;

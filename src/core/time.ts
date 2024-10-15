@@ -119,6 +119,11 @@ export class TimeUtils {
     }));
   }
 
+  getTimeOffsetFromDateInMinutes(date: Date, time: Date): number {
+    const offset = time.valueOf() - date.valueOf();
+    return offset / 60_000;
+  }
+
   /** Today's date */
   get today() {
     return this.startOfDay(new Date());

@@ -5,9 +5,13 @@
     </header>
     <XCal :events="mockEvents" view="day">
       <template #event-tile="{ event, tile }">
-        <div class="event-tile-content">
+        <div
+          class="event-tile-content"
+          :data-continuous-start="tile.continuous.start"
+          :data-continuous-end="tile.continuous.end"
+        >
           <p>
-            {{ event.id }} ({{ format(event.startsAt, "HH:mm") }} —
+            ({{ format(event.startsAt, "HH:mm") }} —
             {{ format(event.endsAt, "HH:mm") }})
           </p>
         </div>
@@ -21,16 +25,7 @@ import XCal from "@/component/x-cal.vue";
 import { createMonthData, createDayData } from "@/tests/data";
 import { format } from "date-fns";
 
-const mockEvents = createDayData(new Date(), 20);
-
-// console.log(
-//   mockEvents.map((e) => {
-//     return {
-//       start: e.startsAt.getHours() + e.startsAt.getMinutes() / 60,
-//       end: e.endsAt.getHours() + e.endsAt.getMinutes() / 60,
-//     };
-//   })
-// );
+const mockEvents = createMonthData(new Date(), 1000);
 </script>
 
 <style scoped lang="scss">
@@ -49,24 +44,24 @@ const mockEvents = createDayData(new Date(), 20);
   align-items: center;
   background-color: rgb(171, 183, 196);
   height: 100%;
-  white-space: nowrap;
+  // white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   justify-content: center;
   padding: 2px 8px;
   line-height: 1;
-  border-radius: 4px;
-  font-size: 18px;
+  border-radius: 6px;
+  font-size: 14px;
   // height: 28px;
 }
 
-// .event-tile-content[data-continuous-end] {
-//   border-top-right-radius: 0;
-//   border-bottom-right-radius: 0;
-// }
+.event-tile-content[data-continuous-end] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
 
-// .event-tile-content[data-continuous-start] {
-//   border-top-left-radius: 0;
-//   border-bottom-left-radius: 0;
-// }
+.event-tile-content[data-continuous-start] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
 </style>
