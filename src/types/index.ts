@@ -20,7 +20,7 @@ export type EventType = {
 };
 
 export type EventTile<T extends EventType> = {
-  id: number;
+  id: number | string;
   continuous: { start: boolean; end: boolean };
   event: T;
 };
