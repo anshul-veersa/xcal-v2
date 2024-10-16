@@ -3,7 +3,11 @@
     <header>
       <h2>XCal Preview</h2>
     </header>
-    <XCal :events="mockEvents" view="day">
+    <XCal
+      :events="mockEvents"
+      view="week"
+      :config="{ slotDuration: 30, maxEventsPerSlot: 30 }"
+    >
       <template #event-tile="{ event, tile }">
         <div
           class="event-tile-content"
@@ -25,7 +29,7 @@ import XCal from "@/component/x-cal.vue";
 import { createMonthData, createDayData } from "@/tests/data";
 import { format } from "date-fns";
 
-const mockEvents = createMonthData(new Date(), 1000);
+const mockEvents = createMonthData(new Date(), 50);
 </script>
 
 <style scoped lang="scss">
@@ -44,15 +48,13 @@ const mockEvents = createMonthData(new Date(), 1000);
   align-items: center;
   background-color: rgb(171, 183, 196);
   height: 100%;
-  // white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   justify-content: center;
   padding: 2px 8px;
   line-height: 1;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 14px;
-  // height: 28px;
 }
 
 .event-tile-content[data-continuous-end] {

@@ -1,16 +1,22 @@
 <template>
   <div
-    class="current-time-marker"
-    :style="{ top: markerPosition }"
     ref="markerRef"
+    class="current-time-marker"
+    :style="{ top: markerPosition, '--bead-offset': (beadAt ?? 0) * 100 + '%' }"
   >
     <span>{{ t.format(now, "HH:mm") }}</span>
   </div>
 </template>
 
 <script setup lang="ts" generic="T">
-import { computed, inject, onUnmounted, ref } from "vue";
+import { computed, inject, onUnmounted, ref, watch } from "vue";
 import { TimeUtils } from "@/core/time";
+import { areOverlapping } from "@/core/utils";
+
+const props = defineProps<{
+  beadAt: number;
+  hideSelectorsOnOverlap?: string[];
+}>();
 
 const t = inject<TimeUtils>("time_utils")!;
 
@@ -19,7 +25,7 @@ const markerRef = ref<HTMLElement>();
 const now = ref(t.now);
 const timerId = setInterval(() => {
   now.value = t.now;
-}, 2000);
+}, 1000);
 onUnmounted(() => {
   clearInterval(timerId);
 });
@@ -30,6 +36,33 @@ const markerPosition = computed(() => {
   const elapsedMinutes = (+now.value - +start) / (1000 * 60);
   return `${((elapsedMinutes / 1440) * 100).toFixed(1)}%`;
 });
+
+function hideOverlappingSelectors() {
+  if (!markerRef.value) return;
+
+  const elementsToHide =
+    props.hideSelectorsOnOverlap?.flatMap((selector) =>
+      Array.from(document.querySelectorAll(selector))
+    ) ?? [];
+
+  const markerTime = markerRef.value.querySelector("span");
+
+  elementsToHide.forEach((element) => {
+    const overlap = areOverlapping(markerTime!, element);
+
+    if (overlap) {
+      (element as HTMLElement).style.visibility = "hidden";
+    }
+  });
+}
+
+watch(
+  [markerRef, markerPosition],
+  () => {
+    hideOverlappingSelectors();
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped lang="scss">
@@ -45,7 +78,7 @@ const markerPosition = computed(() => {
   &::before {
     content: "";
     position: absolute;
-    left: 0px;
+    left: var(--bead-offset);
     top: 50%;
     transform: translateY(-50%);
     border-radius: 100px;

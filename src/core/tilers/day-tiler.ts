@@ -1,8 +1,8 @@
 import type { TimeUtils } from "@/core/time";
 import { arrayToMap, clamp } from "@/core/utils";
-import type { EventTile, EventType } from "@/types";
+import type { BaseEventTile, BaseEvent } from "@/types";
 
-export type Tile<Event extends EventType> = {
+export type Tile<Event extends BaseEvent> = {
   columnIndex: number;
   geometry: {
     xOffset: number;
@@ -14,9 +14,9 @@ export type Tile<Event extends EventType> = {
     next: Set<Tile<Event>>;
     back: Set<Tile<Event>>;
   };
-} & EventTile<Event>;
+} & BaseEventTile<Event>;
 
-type Column<Event extends EventType> = {
+type Column<Event extends BaseEvent> = {
   bottomEnd: Date;
   lastTile: Tile<Event>;
 };
@@ -30,7 +30,7 @@ type TilerConfig = {
 
 const UNSET_VALUE = -1;
 
-export class DayTiler<Event extends EventType> {
+export class DayTiler<Event extends BaseEvent> {
   private minutesInDay = 1440;
   private slotsInDay: number;
   private range: { start: Date; end: Date } = {

@@ -57,7 +57,7 @@ function handleSlotClick(slot: Slot, columnId: T) {
 </script>
 
 <style lang="scss" scoped>
-$slot-size: 12px;
+$slot-size: 36px;
 
 .day-slot {
   height: $slot-size;

@@ -5,8 +5,8 @@
       <SlotIndicatorsLayer />
 
       <SlotsLayer
-        :columns="[{ date: props.date, id: null }]"
-        :slot-duration="props.slotDuration"
+        :columns="[{ date: activeDate, id: null }]"
+        :slot-duration="config.slotDuration"
       />
 
       <EventTilesLayer :layout-event-tiles="layoutEventTiles">
@@ -16,7 +16,7 @@
       </EventTilesLayer>
 
       <div class="overlay-layer">
-        <TimeMarker />
+        <TimeMarker :hideSelectorsOnOverlap="['.hour-indicator__label']" />
       </div>
     </div>
   </div>
@@ -34,28 +34,28 @@ import {
   EventTilesLayer,
 } from "@/component/views/common";
 
-export type DayViewProps = {
+const { events, activeDate, config } = inject<{
   events: Array<CalendarEvent<T>>;
-  date: Date;
-  maxEventsPerSlot: number;
-  slotDuration: SlotDuration;
-};
-const props = defineProps<DayViewProps>();
+  activeDate: Date;
+  config: {
+    slotDuration: SlotDuration;
+    maxEventsPerSlot: number;
+    showCurrentTimeMarker: boolean;
+    showAllDaySlot: boolean;
+  };
+}>("config")!;
 
 const t = inject<TimeUtils>("time_utils")!;
 
 const tiler = new DayTiler(
-  {
-    maxPerSlot: props.maxEventsPerSlot,
-    slotDuration: props.slotDuration,
-  },
+  { maxPerSlot: config.maxEventsPerSlot, slotDuration: config.slotDuration },
   t
 );
 const layoutEventTiles = computed(() => {
   return [
     {
-      id: +props.date,
-      eventTiles: tiler.getLayoutTiles(props.events, { date: props.date }),
+      id: +activeDate,
+      eventTiles: tiler.getLayoutTiles(events, { date: activeDate }),
     },
   ];
 });
@@ -65,8 +65,6 @@ const layoutEventTiles = computed(() => {
 .day-layout {
   display: grid;
   grid-template-columns: 60px 1fr;
-  overflow-y: scroll;
-  padding: 16px 0;
 }
 
 .overlay-layer {

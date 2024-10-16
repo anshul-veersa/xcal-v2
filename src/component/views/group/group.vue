@@ -6,11 +6,11 @@
       <SlotsLayer
         :columns="
           groups.map((group) => ({
-            date: props.date,
+            date: activeDate,
             id: group.id,
           }))
         "
-        :slot-duration="props.slotDuration"
+        :slot-duration="config.slotDuration"
       />
 
       <EventTilesLayer :layout-event-tiles="layoutEventTiles">
@@ -20,7 +20,7 @@
       </EventTilesLayer>
 
       <div class="overlay-layer">
-        <TimeMarker />
+        <TimeMarker :hideSelectorsOnOverlap="['.hour-indicator__label']" />
       </div>
     </div>
   </div>
@@ -41,36 +41,38 @@ import { groupBy } from "@/core/utils";
 
 export type Group = { id: string; events: CalendarEvent<T>[] };
 
-export type GroupViewProps = {
+const { events, activeDate, config } = inject<{
   events: Array<CalendarEvent<T>>;
-  date: Date;
-  maxEventsPerSlot: number;
-  slotDuration: SlotDuration;
-  groupSelector: (event: CalendarEvent<T>) => string;
-  groupSorter: (groups: Group[]) => Group[];
-};
-
-const props = defineProps<GroupViewProps>();
+  activeDate: Date;
+  config: {
+    slotDuration: SlotDuration;
+    maxEventsPerSlot: number;
+    showCurrentTimeMarker: boolean;
+    showAllDaySlot: boolean;
+    groupSelector: (event: CalendarEvent<T>) => string;
+    groupSorter: (groups: Group[]) => Group[];
+  };
+}>("config")!;
 
 const t = inject<TimeUtils>("time_utils")!;
 
 const tiler = new DayTiler(
   {
-    maxPerSlot: props.maxEventsPerSlot,
-    slotDuration: props.slotDuration,
+    maxPerSlot: config.maxEventsPerSlot,
+    slotDuration: config.slotDuration,
   },
   t
 );
 
 const groups = computed<Array<Group>>(() => {
-  if (!props.groupSelector)
+  if (!config.groupSelector)
     throw new Error("Specify a group selector when using group view.");
-  if (!props.groupSorter)
+  if (!config.groupSorter)
     throw new Error("Specify a group sorter when using group view.");
 
-  const eventsByGroup = groupBy(props.events, props.groupSelector);
+  const eventsByGroup = groupBy(events, config.groupSelector);
 
-  const sortedGroups = props.groupSorter(
+  const sortedGroups = config.groupSorter(
     Object.entries(eventsByGroup).map(([groupId, events]) => ({
       id: groupId,
       events: events!,
@@ -84,7 +86,7 @@ const layoutEventTiles = computed(() => {
   const layoutEvents = groups.value.map((group) => {
     return {
       id: group.id,
-      eventTiles: tiler.getLayoutTiles(group.events, { date: props.date }),
+      eventTiles: tiler.getLayoutTiles(group.events, { date: activeDate }),
     };
   });
 
@@ -96,8 +98,6 @@ const layoutEventTiles = computed(() => {
 .group-layout {
   display: grid;
   grid-template-columns: 60px 1fr;
-  overflow-y: scroll;
-  padding: 16px 0;
 }
 
 .overlay-layer {

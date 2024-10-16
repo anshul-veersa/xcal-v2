@@ -1,26 +1,20 @@
 import type { TimeUtils } from "@/core/time";
-import type { EventTile, EventType } from "@/types";
+import type { BaseEventTile, BaseEvent } from "@/types";
 
-type Tile<Event extends EventType> = {
+type Tile<Event extends BaseEvent> = {
   geometry: {
     xStart: number;
     xEnd: number;
   };
-} & EventTile<Event>;
+} & BaseEventTile<Event>;
 
 type TilerConfig = {
   /** Limit the maximum number of events that can appear in a single row */
   maxPerSlot: number;
-
-  range: {
-    start: Date;
-    end: Date;
-  };
 };
 
-export class MonthTiler<Event extends EventType> {
+export class MonthTiler<Event extends BaseEvent> {
   constructor(
-    private readonly events: Event[],
     private readonly config: TilerConfig,
     private readonly time: TimeUtils
   ) {}
@@ -29,17 +23,22 @@ export class MonthTiler<Event extends EventType> {
     return this.time.differenceInCalendarDays(event.startsAt, event.endsAt);
   }
 
-  getLayoutTiles() {
+  getLayoutTiles(
+    events: Event[],
+    options: { range: { from: Date; to: Date } }
+  ) {
+    const { range } = options;
+
     const t = this.time;
-    const calendarStartDate = this.config.range.start;
-    const calendarEndDate = this.config.range.end;
+    const calendarStartDate = range.from;
+    const calendarEndDate = range.to;
 
     /** Events filtered for visible range, sorted by their row placement priority. */
-    const eventsInRange = this.events
+    const eventsInRange = events
       .filter((e) =>
         t.isBetween(e.startsAt, {
-          start: calendarStartDate,
-          end: calendarEndDate,
+          start: range.from,
+          end: range.to,
         })
       )
       .sort((e1, e2) => this.getEventPriority(e1) - this.getEventPriority(e2));
@@ -64,14 +63,14 @@ export class MonthTiler<Event extends EventType> {
     };
 
     /** Layout of events. */
-    const eventSeries: Record<string, { tiles: Tile<Event>[] }> =
+    const eventSeries: Record<string, { eventTiles: Tile<Event>[] }> =
       Object.fromEntries(
         t
           .eachWeekOfInterval({
-            start: calendarStartDate,
-            end: calendarEndDate,
+            start: range.from,
+            end: range.to,
           })
-          .map((d) => [t.getWeek(d), { tiles: [] }])
+          .map((d) => [t.getWeek(d), { eventTiles: [] }])
       );
 
     let eventsTouched = 0;
@@ -82,8 +81,8 @@ export class MonthTiler<Event extends EventType> {
 
     while (eventsTouched < eventsInRange.length) {
       // Move to next line, reiterate from first day
-      if (t.isAfter(currentDay, calendarEndDate)) {
-        currentDay = calendarStartDate;
+      if (t.isAfter(currentDay, range.to)) {
+        currentDay = range.from;
         continue;
       }
 
@@ -140,7 +139,7 @@ export class MonthTiler<Event extends EventType> {
           },
         };
 
-        eventSeries[currentWeek].tiles.push(tile);
+        eventSeries[currentWeek].eventTiles.push(tile);
 
         if (!willContinueAfterCurrentWeek) {
           currentDay = t.addDays(currentEvent.endsAt, 1);

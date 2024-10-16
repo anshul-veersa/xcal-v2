@@ -34,15 +34,15 @@
 
         <div class="week-layout__overlay">
           <div
-            v-for="{ event, tile } in layoutEventTiles[week.id].tiles"
-            :key="event.id"
+            v-for="tile in layoutEventTiles[week.id].eventTiles"
+            :key="tile.id"
             class="overlay__tile"
             :style="{
-              gridColumnStart: tile.slot.start,
-              gridColumnEnd: tile.slot.end,
+              gridColumnStart: tile.geometry.xStart,
+              gridColumnEnd: tile.geometry.xEnd,
             }"
           >
-            <slot name="event-tile" v-bind="{ event, tile }" />
+            <slot name="event-tile" v-bind="{ event: tile.event, tile }" />
           </div>
         </div>
       </div>
@@ -56,20 +56,17 @@ import { TimeUtils } from "@/core/time";
 import type { CalendarEvent } from "@/types";
 import { MonthTiler } from "@/core/tilers";
 
-export type MonthViewProps = {
-  events: Array<CalendarEvent<T>>;
-  date: Date;
-  config: {
-    showSiblingMonths: boolean;
-    maxTilesPerDay: number;
-  };
-};
-const props = withDefaults(defineProps<MonthViewProps>(), {
-  config: () => ({ maxTilesPerDay: 10, showSiblingMonths: true }),
-});
-
 /** Locale aware time utilities */
 const t = inject<TimeUtils>("time_utils")!;
+
+const { events, activeDate, config } = inject<{
+  events: Array<CalendarEvent<T>>;
+  activeDate: Date;
+  config: {
+    maxEventsPerSlot: number;
+    showSiblingMonths: boolean;
+  };
+}>("config")!;
 
 const weekDays = computed(() => {
   return t.daysOfWeek().map((d) => ({ ...d, label: d.label.toUpperCase() }));
@@ -88,8 +85,8 @@ type MonthWeeks = Array<{
   }>;
 }>;
 const monthWeeks = computed<MonthWeeks>(() => {
-  const calendarStart = t.startOfWeek(t.startOfMonth(props.date));
-  const calendarEnd = t.endOfWeek(t.endOfMonth(props.date));
+  const calendarStart = t.startOfWeek(t.startOfMonth(activeDate));
+  const calendarEnd = t.endOfWeek(t.endOfMonth(activeDate));
 
   const datesOnCalendar = t.eachDayOfInterval({
     start: calendarStart,
@@ -120,171 +117,21 @@ const calendarDates = computed(() => {
   return Object.entries(monthWeeks.value).flatMap(([_, d]) => d.days);
 });
 
-/**
- * A map of events by date,
- * access by date formatted as yyyy-MM-dd
- */
-const eventsByDate = computed(() => {
-  const calendarStartDate = calendarDates.value.at(0)!.date,
-    calendarEndDate = calendarDates.value.at(-1)!.date;
+const tiler = new MonthTiler({ maxPerSlot: config.maxEventsPerSlot }, t);
 
-  const keyFormat = "yyyy-MM-dd";
-
-  const records: Record<string, CalendarEvent<T>[] | undefined> =
-    Object.fromEntries(
-      t
-        .eachDayOfInterval({
-          start: calendarStartDate,
-          end: calendarEndDate,
-        })
-        .map((d) => [t.format(d, keyFormat), []])
-    );
-  props.events.forEach((e) => {
-    const dates = t.eachDayOfInterval({ start: e.startsAt, end: e.endsAt });
-    dates.forEach((d) => {
-      const key = t.format(d, keyFormat);
-      if (records[key]) records[key]!.push(e);
-    });
-  });
-
-  return records;
-});
-
-type LayoutEventTiles = Record<
-  number,
-  {
-    tiles: Array<EventTileSlotProps<T>>;
-  }
->;
 /**
  * Record of event tiles in series for each week of the month.
  * Used with CSS grid to place on the week layout.
  */
-const layoutEventTiles = computed<LayoutEventTiles>(() => {
-  const calendarStartDate = calendarDates.value.at(0)!.date;
-  const calendarEndDate = calendarDates.value.at(-1)!.date;
-
-  const getEventPriority = (e: CalendarEvent<unknown>) =>
-    t.differenceInCalendarDays(e.startsAt, e.endsAt);
-
-  /** Events filtered for visible range, sorted by their row placement priority. */
-  const eventsInRange = props.events
-    .filter((e) =>
-      t.isBetween(e.startsAt, {
-        start: calendarStartDate,
-        end: calendarEndDate,
-      })
-    )
-    .sort((e1, e2) => getEventPriority(e1) - getEventPriority(e2));
-
-  /** A map of events keyed by their start date. */
-  const eventsByDate: Record<string, CalendarEvent<T>[] | undefined> = {};
-  eventsInRange.forEach((e) => {
-    const date = t.format(e.startsAt, "yyyy-MM-dd");
-    if (!eventsByDate[date]) eventsByDate[date] = [];
-    eventsByDate[date]!.push(e);
+const layoutEventTiles = computed(() => {
+  const layoutTiles = tiler.getLayoutTiles(events, {
+    range: {
+      from: calendarDates.value.at(0)!.date,
+      to: calendarDates.value.at(-1)!.date,
+    },
   });
 
-  const eventsTouchedByDate = {
-    records: {} as Record<string, number | undefined>,
-    get(date: string) {
-      return this.records[date] ?? 0;
-    },
-    inc(date: string) {
-      if (!this.records[date]) this.records[date] = 0;
-      this.records[date]!++;
-    },
-  };
-
-  /** Layout of events. */
-  const eventSeries: LayoutEventTiles = Object.fromEntries(
-    t
-      .eachWeekOfInterval({ start: calendarStartDate, end: calendarEndDate })
-      .map((d) => [t.getWeek(d), { tiles: [] }])
-  );
-
-  let eventsTouched = 0;
-  let currentDay = calendarStartDate;
-
-  // Add this offset to properly calculate grid column span
-  const gridOffset = 1;
-
-  while (eventsTouched < eventsInRange.length) {
-    // Move to next line, reiterate from first day
-    if (t.isAfter(currentDay, calendarEndDate)) {
-      currentDay = calendarStartDate;
-      continue;
-    }
-
-    const dateStr = t.format(currentDay, "yyyy-MM-dd");
-
-    const dayEventIndex = eventsTouchedByDate.get(dateStr);
-    if (dayEventIndex >= props.config.maxTilesPerDay) {
-      eventsTouched++;
-      continue;
-    }
-
-    // Get the highest priority event for this day
-    const currentEvent = eventsByDate[dateStr]?.[dayEventIndex];
-    // No event was found for this day, move to next day
-    if (!currentEvent) {
-      currentDay = t.addDays(currentDay, 1);
-      continue;
-    }
-
-    eventsTouchedByDate.inc(dateStr);
-
-    let isContinuingFromLastWeek = false;
-    while (t.isBefore(currentDay, calendarEndDate)) {
-      // This event will continue after this week's end
-      const willContinueAfterCurrentWeek = t.isAfter(
-        currentEvent.endsAt,
-        t.endOfWeek(currentDay)
-      );
-
-      const currentWeek = t.getWeek(currentDay);
-
-      const calendarEvent = {
-        event: currentEvent,
-        tile: {
-          slot: {
-            start:
-              t.getWeekDay(
-                isContinuingFromLastWeek
-                  ? t.startOfWeek(currentDay)
-                  : currentDay
-              ) + gridOffset,
-            end:
-              t.getWeekDay(
-                willContinueAfterCurrentWeek
-                  ? t.endOfWeek(currentDay)
-                  : currentEvent.endsAt
-              ) +
-              1 +
-              gridOffset,
-          },
-          continuous: {
-            start: isContinuingFromLastWeek,
-            end: willContinueAfterCurrentWeek,
-          },
-        },
-      };
-
-      eventSeries[currentWeek].tiles.push(calendarEvent);
-
-      if (!willContinueAfterCurrentWeek) {
-        currentDay = t.addDays(currentEvent.endsAt, 1);
-        break;
-      } else {
-        currentDay = t.startOfWeek(t.addWeeks(currentDay, 1));
-        isContinuingFromLastWeek = true;
-      }
-    }
-
-    eventsTouched++;
-  }
-
-  return eventSeries;
+  return layoutTiles;
 });
 </script>
 

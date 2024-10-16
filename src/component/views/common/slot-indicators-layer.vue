@@ -17,6 +17,8 @@ import { computed, inject } from "vue";
 
 const t = inject<TimeUtils>("time_utils")!;
 
+const slotLabelFormat = "HH:mm";
+
 const slotIndicators = computed(() => {
   const today = t.today;
   const hours = t.eachHourOfInterval({
@@ -28,7 +30,7 @@ const slotIndicators = computed(() => {
     return {
       id: +time,
       hour: time,
-      label: t.format(time, "HH:mm"),
+      label: t.format(time, slotLabelFormat),
     };
   });
 
@@ -37,17 +39,17 @@ const slotIndicators = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-$slot-size: 12px;
+$slot-size: 36px;
 $separator-color: rgba(0, 0, 0, 0.2);
 $hour-indicator-height: 1px;
-$slot-size-minutes: 15;
+$slot-size-minutes: 30;
 $total-slots: 1440 / $slot-size-minutes;
 
 .indicators-layer {
   display: grid;
   grid-row-start: 1;
   grid-column: 1 / -1;
-  grid-template-rows: repeat(calc($total-slots / 4), calc($slot-size * 4));
+  grid-template-rows: repeat(calc($total-slots / 2), calc($slot-size * 2));
 }
 
 .hour-indicator {

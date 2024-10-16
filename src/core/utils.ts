@@ -26,3 +26,15 @@ export function groupBy<K extends PropertyKey, T>(
   });
   return group;
 }
+
+export function areOverlapping(elementA: Element, elementB: Element) {
+  const rectA = elementA.getBoundingClientRect(),
+    rectB = elementB.getBoundingClientRect();
+
+  return !(
+    rectA.top + rectA.height < rectB.top ||
+    rectA.top > rectB.top + rectB.height ||
+    rectA.left + rectA.width < rectB.left ||
+    rectA.left > rectB.left + rectB.width
+  );
+}

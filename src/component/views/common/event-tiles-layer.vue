@@ -42,11 +42,11 @@ const props = defineProps<{
 </script>
 
 <style scoped lang="scss">
-$slot-size: 12px;
+$slot-size: 36px;
 $spacer-right: 20px;
 $separator-color: rgba(0, 0, 0, 0.2);
 $hour-indicator-height: 1px;
-$slot-size-minutes: 15;
+$slot-size-minutes: 30;
 $total-slots: 1440 / $slot-size-minutes;
 
 .events-layer {
@@ -56,6 +56,12 @@ $total-slots: 1440 / $slot-size-minutes;
   display: flex;
   border-left: 1px solid $separator-color;
   overflow-x: scroll;
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .events-column {

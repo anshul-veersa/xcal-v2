@@ -1,7 +1,7 @@
 <template>
   <div class="x-cal">
     <keep-alive :max="2">
-      <component :is="activeView.component" v-bind="activeView.props">
+      <component :is="activeView.component">
         <template #event-tile="slotProps"
           ><slot name="event-tile" v-bind="slotProps" />
         </template>
@@ -15,13 +15,7 @@ import { provide, computed, defineAsyncComponent } from "vue";
 import { TimeUtils } from "@/core/time";
 
 import type { CalendarEvent, SlotDuration } from "@/types";
-import type {
-  MonthViewProps,
-  DayViewProps,
-  WeekViewProps,
-  GroupViewProps,
-  Group,
-} from "@/component/views";
+import type { Group } from "@/component/views";
 
 type Props<T> = {
   /** Array of events to show on the calendar. */
@@ -87,56 +81,37 @@ const Views = {
     component: defineAsyncComponent(
       () => import("@/component/views/month/month.vue")
     ),
-    props: {
-      events: props.events,
-      date: props.date,
-      config: {
-        maxTilesPerDay: props.config.maxEventsPerSlot!,
-        showSiblingMonths: true,
-      },
-    } satisfies MonthViewProps,
   },
   week: {
     name: "week",
     component: defineAsyncComponent(
       () => import("@/component/views/week/week.vue")
     ),
-    props: {
-      events: props.events,
-      date: props.date,
-      maxEventsPerSlot: props.config.maxEventsPerSlot!,
-      slotDuration: props.config.slotDuration!,
-    } satisfies WeekViewProps,
   },
   day: {
     name: "day",
     component: defineAsyncComponent(
       () => import("@/component/views/day/day.vue")
     ),
-    props: {
-      events: props.events,
-      date: props.date,
-      maxEventsPerSlot: props.config.maxEventsPerSlot!,
-      slotDuration: props.config.slotDuration!,
-    } satisfies DayViewProps,
   },
   group: {
     name: "group",
     component: defineAsyncComponent(
       () => import("@/component/views/group/group.vue")
     ),
-    props: {
-      events: props.events,
-      date: props.date,
-      maxEventsPerSlot: props.config.maxEventsPerSlot!,
-      slotDuration: props.config.slotDuration!,
-      groupSelector: props.viewConfig?.group?.groupSelector!,
-      groupSorter: props.viewConfig?.group?.groupSorter!,
-    } satisfies GroupViewProps,
   },
 } as const;
 
 const activeView = computed(() => Views[props.view]);
+
+provide("config", {
+  events: props.events,
+  activeDate: props.date,
+  config: {
+    slotDuration: props.config.slotDuration,
+    maxEventsPerSlot: props.config.maxEventsPerSlot,
+  },
+});
 
 const emit = defineEmits<{
   eventUpdate: [];

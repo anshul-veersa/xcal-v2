@@ -5,7 +5,7 @@
 
       <SlotsLayer
         :columns="weekDays.map((date) => ({ date, id: null }))"
-        :slot-duration="props.slotDuration"
+        :slot-duration="config.slotDuration"
       />
 
       <EventTilesLayer :layout-event-tiles="layoutEventTiles">
@@ -15,7 +15,10 @@
       </EventTilesLayer>
 
       <div class="overlay-layer">
-        <TimeMarker />
+        <TimeMarker
+          :beadAt="markerBeadOffset"
+          :hideSelectorsOnOverlap="['.hour-indicator__label']"
+        />
       </div>
     </div>
   </div>
@@ -33,28 +36,40 @@ import {
   EventTilesLayer,
 } from "@/component/views/common";
 
-export type WeekViewProps = {
+const { events, activeDate, config } = inject<{
   events: Array<CalendarEvent<T>>;
-  date: Date;
-  maxEventsPerSlot: number;
-  slotDuration: SlotDuration;
-};
-
-const props = defineProps<WeekViewProps>();
+  activeDate: Date;
+  config: {
+    slotDuration: SlotDuration;
+    maxEventsPerSlot: number;
+    showWeekends: boolean;
+    showCurrentTimeMarker: boolean;
+    showAllDaySlot: boolean;
+  };
+}>("config")!;
 
 const t = inject<TimeUtils>("time_utils")!;
 
 const weekDays = computed(() => {
   return t.eachDayOfInterval({
-    start: t.startOfWeek(props.date),
-    end: t.endOfWeek(props.date),
+    start: t.startOfWeek(activeDate),
+    end: t.endOfWeek(activeDate),
   });
+});
+
+const markerBeadOffset = computed(() => {
+  const keyFormat = "EEE";
+  const dayToday = t.format(t.today, keyFormat);
+  const dayIndex = t
+    .daysOfWeek(keyFormat)
+    .findIndex((d) => d.label === dayToday);
+  return +(dayIndex / 7).toFixed(2);
 });
 
 const tiler = new DayTiler(
   {
-    maxPerSlot: props.maxEventsPerSlot,
-    slotDuration: props.slotDuration,
+    maxPerSlot: config.maxEventsPerSlot,
+    slotDuration: config.slotDuration,
   },
   t
 );
@@ -63,7 +78,7 @@ const layoutEventTiles = computed(() => {
   const weekEvents = weekDays.value.map((day) => {
     return {
       id: t.format(day, "yyyy-MM-dd"),
-      eventTiles: tiler.getLayoutTiles(props.events, { date: day }),
+      eventTiles: tiler.getLayoutTiles(events, { date: day }),
     };
   });
 
@@ -75,8 +90,6 @@ const layoutEventTiles = computed(() => {
 .week-layout {
   display: grid;
   grid-template-columns: 60px 1fr;
-  overflow-y: scroll;
-  padding: 16px 0;
 }
 
 .overlay-layer {
