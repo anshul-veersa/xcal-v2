@@ -1,24 +1,26 @@
 <template>
-  <div class="events-layer">
-    <div
-      class="events-column"
-      v-for="column in props.layoutEventTiles"
-      :key="column.id"
-      v-bind="column.elementAttrs"
-    >
-      <div class="events-column__tiles">
-        <div
-          v-for="tile in column.eventTiles"
-          :key="tile.id"
-          class="event-tile"
-          :style="{
-            gridRowStart: tile.geometry.yStart + 1,
-            gridRowEnd: tile.geometry.yEnd + 1,
-            width: `calc(${tile.geometry.width * 100 + '%'} - 2px)`,
-            left: `calc(${tile.geometry.xOffset * 100 + '%'} + 1px)`,
-          }"
-        >
-          <slot name="event-tile" v-bind="{ event: tile.event, tile }" />
+  <div class="events-layer" data-scroll-sync="all">
+    <div class="columns">
+      <div
+        class="events-column"
+        v-for="column in props.layoutEventTiles"
+        :key="column.id"
+        v-bind="column.elementAttrs"
+      >
+        <div class="events-column__tiles">
+          <div
+            v-for="tile in column.eventTiles"
+            :key="tile.id"
+            class="event-tile"
+            :style="{
+              gridRowStart: tile.geometry.yStart + 1,
+              gridRowEnd: tile.geometry.yEnd + 1,
+              width: `calc(${tile.geometry.width * 100 + '%'} - 2px)`,
+              left: `calc(${tile.geometry.xOffset * 100 + '%'} + 1px)`,
+            }"
+          >
+            <slot name="event-tile" v-bind="{ event: tile.event, tile }" />
+          </div>
         </div>
       </div>
     </div>
@@ -27,12 +29,12 @@
 
 <script setup lang="ts">
 import type { Tile } from "@/core/tilers";
-import type { EventType } from "@/types";
+import type { BaseEvent } from "@/types";
 
 const props = defineProps<{
   layoutEventTiles: Array<{
     id: number | string;
-    eventTiles: Tile<EventType>[];
+    eventTiles: Tile<BaseEvent>[];
     elementAttrs?: Record<
       string,
       string | number | Date | boolean | null | undefined
@@ -42,8 +44,8 @@ const props = defineProps<{
 </script>
 
 <style scoped lang="scss">
-$slot-size: 36px;
-$spacer-right: 20px;
+$slot-height: 36px;
+$spacer-right: 16px;
 $separator-color: rgba(0, 0, 0, 0.2);
 $hour-indicator-height: 1px;
 $slot-size-minutes: 30;
@@ -51,35 +53,23 @@ $total-slots: 1440 / $slot-size-minutes;
 
 .events-layer {
   pointer-events: none;
-  grid-row-start: 1;
-  grid-column-start: 2;
-  display: flex;
-  border-left: 1px solid $separator-color;
-  overflow-x: scroll;
+  grid-row: 2 / -1;
+  grid-column: 2 / -1;
+}
 
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
+.columns {
+  display: flex;
 }
 
 .events-column {
   display: grid;
-  flex-basis: 0;
-  flex-grow: 1;
+  flex: 1 1 0;
+  min-width: 100px;
   padding-right: $spacer-right;
-
-  &:not(:first-child) {
-    border-left: 1px solid $separator-color;
-  }
-  &:last-child {
-    border-right: 1px solid $separator-color;
-  }
 
   &__tiles {
     display: grid;
-    grid-template-rows: repeat($total-slots, $slot-size);
+    grid-template-rows: repeat($total-slots, $slot-height);
     grid-column-start: 1;
     grid-row-start: 1;
 

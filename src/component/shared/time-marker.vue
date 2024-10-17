@@ -14,7 +14,7 @@ import { TimeUtils } from "@/core/time";
 import { areOverlapping } from "@/core/utils";
 
 const props = defineProps<{
-  beadAt: number;
+  beadAt?: number;
   hideSelectorsOnOverlap?: string[];
 }>();
 
@@ -31,35 +31,36 @@ onUnmounted(() => {
 });
 
 const markerPosition = computed(() => {
-  const start = t.startOfDay(now.value);
-
-  const elapsedMinutes = (+now.value - +start) / (1000 * 60);
-  return `${((elapsedMinutes / 1440) * 100).toFixed(1)}%`;
+  const elapsedMinutes = t.getMinutesPassedInDay(t.now);
+  return `${((elapsedMinutes / t.minutesInDay) * 100).toFixed(1)}%`;
 });
 
-function hideOverlappingSelectors() {
-  if (!markerRef.value) return;
+const elementsToHide = computed(() => {
+  markerPosition.value;
+  if (!markerRef.value) return [];
 
-  const elementsToHide =
+  const elements: HTMLElement[] =
     props.hideSelectorsOnOverlap?.flatMap((selector) =>
       Array.from(document.querySelectorAll(selector))
     ) ?? [];
 
   const markerTime = markerRef.value.querySelector("span");
 
-  elementsToHide.forEach((element) => {
+  return elements.filter((element) => {
     const overlap = areOverlapping(markerTime!, element);
-
-    if (overlap) {
-      (element as HTMLElement).style.visibility = "hidden";
-    }
+    return overlap;
   });
-}
+});
 
 watch(
-  [markerRef, markerPosition],
-  () => {
-    hideOverlappingSelectors();
+  elementsToHide,
+  (newElementsToHide, oldHiddenElements) => {
+    oldHiddenElements?.forEach(
+      (element) => (element.style.visibility = "visible")
+    );
+    newElementsToHide.forEach(
+      (element) => (element.style.visibility = "hidden")
+    );
   },
   { immediate: true }
 );
@@ -67,12 +68,11 @@ watch(
 
 <style scoped lang="scss">
 .current-time-marker {
-  --marker-color: #e22828ac;
+  --marker-color: #e32f2f;
 
   height: 2px;
-  width: calc(100% + 5px);
+  width: calc(100%);
   background-color: var(--marker-color);
-  transform: translateX(-5px);
   position: absolute;
 
   &::before {

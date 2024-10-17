@@ -1,12 +1,14 @@
 <template>
-  <div class="indicators-layer">
-    <div
-      class="hour-indicator"
-      v-for="hourIndicator in slotIndicators"
-      :key="hourIndicator.id"
-    >
-      <span class="hour-indicator__label">{{ hourIndicator.label }}</span>
-      <div class="hour-indicator__rule" />
+  <div class="indicators-layer" data-scroll-sync="y">
+    <div class="scroll-container">
+      <div
+        class="hour-indicator"
+        v-for="hourIndicator in slotIndicators"
+        :key="hourIndicator.id"
+      >
+        <span class="hour-indicator__label">{{ hourIndicator.label }}</span>
+        <div class="hour-indicator__rule" />
+      </div>
     </div>
   </div>
 </template>
@@ -39,17 +41,19 @@ const slotIndicators = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-$slot-size: 36px;
 $separator-color: rgba(0, 0, 0, 0.2);
 $hour-indicator-height: 1px;
-$slot-size-minutes: 30;
-$total-slots: 1440 / $slot-size-minutes;
 
 .indicators-layer {
-  display: grid;
-  grid-row-start: 1;
+  pointer-events: none;
+  grid-row: 2 / -1;
   grid-column: 1 / -1;
-  grid-template-rows: repeat(calc($total-slots / 2), calc($slot-size * 2));
+}
+
+.scroll-container {
+  --slot-height: 36px;
+  display: grid;
+  grid-template-rows: repeat(24, calc(var(--slot-height) * 2));
 }
 
 .hour-indicator {

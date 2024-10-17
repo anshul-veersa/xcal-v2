@@ -1,6 +1,6 @@
 <template>
   <div class="group-view">
-    <div class="group-layout">
+    <ColumnLayout>
       <SlotIndicatorsLayer />
 
       <SlotsLayer
@@ -22,7 +22,7 @@
       <div class="overlay-layer">
         <TimeMarker :hideSelectorsOnOverlap="['.hour-indicator__label']" />
       </div>
-    </div>
+    </ColumnLayout>
   </div>
 </template>
 
@@ -36,6 +36,7 @@ import {
   SlotIndicatorsLayer,
   SlotsLayer,
   EventTilesLayer,
+  ColumnLayout,
 } from "@/component/views/common";
 import { groupBy } from "@/core/utils";
 

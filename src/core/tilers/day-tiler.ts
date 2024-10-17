@@ -31,7 +31,6 @@ type TilerConfig = {
 const UNSET_VALUE = -1;
 
 export class DayTiler<Event extends BaseEvent> {
-  private minutesInDay = 1440;
   private slotsInDay: number;
   private range: { start: Date; end: Date } = {
     start: new Date(),
@@ -41,7 +40,9 @@ export class DayTiler<Event extends BaseEvent> {
     private readonly config: TilerConfig,
     private readonly time: TimeUtils
   ) {
-    this.slotsInDay = Math.floor(this.minutesInDay / this.config.slotDuration);
+    this.slotsInDay = Math.floor(
+      this.time.minutesInDay / this.config.slotDuration
+    );
   }
 
   private getYOffset(time: Date): number {
@@ -49,8 +50,10 @@ export class DayTiler<Event extends BaseEvent> {
       this.range.start,
       time
     );
-    const clampedOffset = clamp(0, this.minutesInDay, offsetMinutes);
-    return Math.floor((clampedOffset / this.minutesInDay) * this.slotsInDay);
+    const clampedOffset = clamp(0, this.time.minutesInDay, offsetMinutes);
+    return Math.floor(
+      (clampedOffset / this.time.minutesInDay) * this.slotsInDay
+    );
   }
 
   private createTiles(events: Event[]): Tile<Event>[] {

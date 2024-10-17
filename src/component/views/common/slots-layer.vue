@@ -1,12 +1,14 @@
 <template>
-  <div class="slots-layer">
-    <div v-for="column in columns" class="day-slots">
-      <div
-        v-for="slot in column.slots"
-        :key="slot.id"
-        class="day-slot"
-        @click="handleSlotClick(slot, column.id)"
-      />
+  <div class="slots-layer" data-scroll-sync="all">
+    <div class="columns">
+      <div v-for="column in columns" class="column-slots">
+        <div
+          v-for="slot in column.slots"
+          :key="slot.id"
+          class="slot"
+          @click="handleSlotClick(slot, column.id)"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -33,7 +35,7 @@ type Slot = {
   endTime: Date;
 };
 const columns = computed<Array<{ slots: Slot[]; id: T }>>(() => {
-  const totalSlots = 1440 / props.slotDuration;
+  const totalSlots = t.minutesInDay / props.slotDuration;
 
   return props.columns.map((col) => {
     const date = t.startOfDay(col.date);
@@ -58,24 +60,32 @@ function handleSlotClick(slot: Slot, columnId: T) {
 
 <style lang="scss" scoped>
 $slot-size: 36px;
-
-.day-slot {
-  height: $slot-size;
-  transition: background-color 0.2s ease-out;
-
-  &:hover {
-    background-color: rgb(244, 242, 250);
-  }
-}
-
-.day-slots {
-  flex-basis: 0;
-  flex-grow: 1;
-}
+$separator-color: rgba(0, 0, 0, 0.2);
 
 .slots-layer {
-  grid-row-start: 1;
-  grid-column-start: 2;
+  pointer-events: none;
+  grid-row: 2 / -1;
+  grid-column: 2 / -1;
+}
+
+.columns {
   display: flex;
+}
+
+.column-slots {
+  flex: 1 1 0;
+  min-width: 100px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid $separator-color;
+}
+
+.slot {
+  pointer-events: all;
+  flex: 0 0 $slot-size;
+  transition: background-color 0.2s ease-out;
+  &:hover {
+    background-color: #ecf2f279;
+  }
 }
 </style>

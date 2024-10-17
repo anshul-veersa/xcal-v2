@@ -52,3 +52,13 @@ h5,
 h6 {
   overflow-wrap: break-word;
 }
+
+[data-scroll-sync="all"],
+[data-scroll-sync="x"] {
+  overflow-x: scroll;
+}
+
+[data-scroll-sync="all"],
+[data-scroll-sync="y"] {
+  overflow-y: scroll;
+}

@@ -1,6 +1,20 @@
 <template>
   <div class="week-view">
-    <div class="week-layout">
+    <ColumnLayout>
+      <header class="header-layer" data-scroll-sync="x">
+        <div class="scroll-container">
+          <ul>
+            <li
+              v-for="day in weekDays"
+              :key="day.toDateString()"
+              :data-today="t.isSameDay(t.today, day)"
+            >
+              {{ t.format(day, "EEE  d") }}
+            </li>
+          </ul>
+        </div>
+      </header>
+
       <SlotIndicatorsLayer />
 
       <SlotsLayer
@@ -20,12 +34,12 @@
           :hideSelectorsOnOverlap="['.hour-indicator__label']"
         />
       </div>
-    </div>
+    </ColumnLayout>
   </div>
 </template>
 
 <script setup lang="ts" generic="T">
-import { computed, inject } from "vue";
+import { computed, inject, onMounted } from "vue";
 import type { CalendarEvent, SlotDuration } from "@/types";
 import { TimeUtils } from "@/core/time";
 import { DayTiler } from "@/core/tilers";
@@ -34,6 +48,7 @@ import {
   SlotIndicatorsLayer,
   SlotsLayer,
   EventTilesLayer,
+  ColumnLayout,
 } from "@/component/views/common";
 
 const { events, activeDate, config } = inject<{
@@ -63,7 +78,7 @@ const markerBeadOffset = computed(() => {
   const dayIndex = t
     .daysOfWeek(keyFormat)
     .findIndex((d) => d.label === dayToday);
-  return +(dayIndex / 7).toFixed(2);
+  return dayIndex / 7;
 });
 
 const tiler = new DayTiler(
@@ -84,18 +99,61 @@ const layoutEventTiles = computed(() => {
 
   return weekEvents;
 });
+
+let isSyncingScroll = false;
+onMounted(() => {
+  const syncScroll = (source: HTMLElement, targets: HTMLElement[]) => {
+    if (!isSyncingScroll) {
+      isSyncingScroll = true;
+      targets.forEach((target) => {
+        target.scrollTop = source.scrollTop;
+        target.scrollLeft = source.scrollLeft;
+      });
+      isSyncingScroll = false;
+    }
+  };
+
+  const scrollContainers = Array.from(
+    document.querySelectorAll("[data-scroll-sync]")
+  ) as HTMLElement[];
+
+  scrollContainers.forEach((container) => {
+    container.addEventListener("scroll", () =>
+      syncScroll(container, scrollContainers)
+    );
+  });
+});
 </script>
 
 <style scoped lang="scss">
-.week-layout {
-  display: grid;
-  grid-template-columns: 60px 1fr;
-}
-
 .overlay-layer {
   position: relative;
-  grid-row-start: 1;
+  grid-row-start: 2;
   grid-column-start: 2;
   pointer-events: none;
+}
+
+.header-layer {
+  grid-row: 1 / -1;
+  grid-column-start: 2;
+  pointer-events: none;
+
+  ul {
+    list-style: none;
+    display: flex;
+    width: 100%;
+
+    li {
+      display: flex;
+      justify-content: center;
+      flex: 1 1 0;
+      min-width: 100px;
+    }
+
+    li[data-today] {
+      outline-offset: -2px;
+      background-color: #f8faff;
+    }
+  }
 }
 </style>

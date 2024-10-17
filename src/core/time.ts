@@ -133,4 +133,8 @@ export class TimeUtils {
   get now() {
     return new Date();
   }
+
+  get minutesInDay() {
+    return 1440;
+  }
 }

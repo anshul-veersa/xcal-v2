@@ -29,7 +29,7 @@ import XCal from "@/component/x-cal.vue";
 import { createMonthData, createDayData } from "@/tests/data";
 import { format } from "date-fns";
 
-const mockEvents = createMonthData(new Date(), 50);
+const mockEvents = createMonthData(new Date(), 200);
 </script>
 
 <style scoped lang="scss">

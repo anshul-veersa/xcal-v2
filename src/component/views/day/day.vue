@@ -1,7 +1,8 @@
 <template>
   <div class="day-view">
-    <header>All Day</header>
-    <div class="day-layout">
+    <ColumnLayout>
+      <header>All Day</header>
+
       <SlotIndicatorsLayer />
 
       <SlotsLayer
@@ -18,7 +19,7 @@
       <div class="overlay-layer">
         <TimeMarker :hideSelectorsOnOverlap="['.hour-indicator__label']" />
       </div>
-    </div>
+    </ColumnLayout>
   </div>
 </template>
 
@@ -32,6 +33,7 @@ import {
   SlotIndicatorsLayer,
   SlotsLayer,
   EventTilesLayer,
+  ColumnLayout,
 } from "@/component/views/common";
 
 const { events, activeDate, config } = inject<{
@@ -62,15 +64,9 @@ const layoutEventTiles = computed(() => {
 </script>
 
 <style scoped lang="scss">
-.day-layout {
-  display: grid;
-  grid-template-columns: 60px 1fr;
-}
-
 .overlay-layer {
-  z-index: 2;
   position: relative;
-  grid-row-start: 1;
+  grid-row-start: 2;
   grid-column-start: 2;
   pointer-events: none;
 }
