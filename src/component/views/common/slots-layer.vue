@@ -1,7 +1,8 @@
 <template>
-  <div class="slots-layer" data-scroll-sync="all">
+  <div class="slots-layer">
     <div class="columns">
       <div v-for="column in columns" class="column-slots">
+        <div class="slot all-day">All Day</div>
         <div
           v-for="slot in column.slots"
           :key="slot.id"
@@ -63,9 +64,7 @@ $slot-size: 36px;
 $separator-color: rgba(0, 0, 0, 0.2);
 
 .slots-layer {
-  pointer-events: none;
-  grid-row: 2 / -1;
-  grid-column: 2 / -1;
+  background-color: #fafbfc50;
 }
 
 .columns {
@@ -74,10 +73,13 @@ $separator-color: rgba(0, 0, 0, 0.2);
 
 .column-slots {
   flex: 1 1 0;
-  min-width: 100px;
+  min-width: 120px;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid $separator-color;
+
+  &:not(:last-child) {
+    border-right: 1px solid $separator-color;
+  }
 }
 
 .slot {
@@ -85,7 +87,15 @@ $separator-color: rgba(0, 0, 0, 0.2);
   flex: 0 0 $slot-size;
   transition: background-color 0.2s ease-out;
   &:hover {
-    background-color: #ecf2f279;
+    background-color: #d5eaea79;
+  }
+
+  &.all-day {
+    border-bottom: 2px solid $separator-color;
+    position: sticky;
+    background-color: #fafbfc;
+    top: 0;
+    z-index: 4;
   }
 }
 </style>

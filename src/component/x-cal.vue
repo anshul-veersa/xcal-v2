@@ -2,8 +2,12 @@
   <div class="x-cal">
     <keep-alive :max="2">
       <component :is="activeView.component">
-        <template #event-tile="slotProps"
-          ><slot name="event-tile" v-bind="slotProps" />
+        <template #event-tile="slotProps">
+          <slot name="event-tile" v-bind="slotProps" />
+        </template>
+
+        <template #time-slot="slotProps">
+          <slot name="time-slot" v-bind="slotProps" />
         </template>
       </component>
     </keep-alive>

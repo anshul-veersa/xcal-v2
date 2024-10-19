@@ -30,6 +30,8 @@ import {
   setDate,
   setMonth,
   setYear,
+  differenceInMinutes,
+  roundToNearestMinutes,
 } from "date-fns";
 
 export class TimeUtils {
@@ -58,6 +60,7 @@ export class TimeUtils {
   addMinutes = addMinutes;
   addMonths = addMonths;
   addYears = addYears;
+  differenceInMinutes = differenceInMinutes;
 
   /**
    * CONVERSION UTILITIES
@@ -84,6 +87,10 @@ export class TimeUtils {
   eachMonthOfInterval = eachMonthOfInterval;
   differenceInCalendarDays = differenceInCalendarDays;
   eachHourOfInterval = eachHourOfInterval;
+  minutesSinceEpoch(time: Date) {
+    const msSinceEpoch = time.valueOf();
+    return msSinceEpoch / 60_000;
+  }
 
   /**
    * PARSING & FORMATTING UTILITIES

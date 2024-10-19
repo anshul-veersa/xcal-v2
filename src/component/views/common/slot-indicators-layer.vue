@@ -1,6 +1,6 @@
 <template>
   <div class="indicators-layer" data-scroll-sync="y">
-    <div class="scroll-container">
+    <div class="hour-indicators">
       <div
         class="hour-indicator"
         v-for="hourIndicator in slotIndicators"
@@ -19,8 +19,7 @@ import { computed, inject } from "vue";
 
 const t = inject<TimeUtils>("time_utils")!;
 
-const slotLabelFormat = "HH:mm";
-
+const slotLabelFormat = "hh:mm a";
 const slotIndicators = computed(() => {
   const today = t.today;
   const hours = t.eachHourOfInterval({
@@ -46,11 +45,13 @@ $hour-indicator-height: 1px;
 
 .indicators-layer {
   pointer-events: none;
-  grid-row: 2 / -1;
+  grid-row: 1 / -1;
   grid-column: 1 / -1;
 }
 
-.scroll-container {
+.hour-indicators {
+  margin-top: 140px;
+
   --slot-height: 36px;
   display: grid;
   grid-template-rows: repeat(24, calc(var(--slot-height) * 2));
@@ -62,8 +63,9 @@ $hour-indicator-height: 1px;
   height: 0px;
 
   &__label {
+    text-align: center;
     font-size: 14px;
-    width: 48px;
+    width: 90px;
     flex-shrink: 0;
   }
 

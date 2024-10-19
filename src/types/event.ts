@@ -7,13 +7,19 @@ export type BaseEvent = {
   endsAt: Date;
 };
 
-export type CalendarEvent<T> = {
+export type CalendarEvent<EventData> = {
   recurrencePattern?: string;
-  data: T;
+  data: EventData;
   config?: {
     isDraggable: boolean;
     isResizable: boolean;
   };
+} & BaseEvent;
+
+export type BackgroundEvent<EventData> = {
+  data: EventData;
+  recurrencePattern?: string;
+  priority: number;
 } & BaseEvent;
 
 export type BaseEventTile<T extends BaseEvent> = {

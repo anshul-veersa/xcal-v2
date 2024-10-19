@@ -205,6 +205,10 @@ const layoutEventTiles = computed(() => {
     align-items: center;
     padding: 8px 12px;
     height: 32px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #fff;
 
     .date-label {
       font-size: 14px;
@@ -255,7 +259,7 @@ const layoutEventTiles = computed(() => {
 
 .overlay__tile {
   pointer-events: all;
-  margin: 2px 4px;
+  margin: 1px 3px;
 }
 
 .month-header {

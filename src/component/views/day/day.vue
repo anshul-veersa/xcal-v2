@@ -15,10 +15,6 @@
           <slot name="event-tile" v-bind="slotProps" />
         </template>
       </EventTilesLayer>
-
-      <div class="overlay-layer">
-        <TimeMarker :hideSelectorsOnOverlap="['.hour-indicator__label']" />
-      </div>
     </ColumnLayout>
   </div>
 </template>
@@ -28,7 +24,6 @@ import { computed, inject } from "vue";
 import type { CalendarEvent, SlotDuration } from "@/types";
 import { TimeUtils } from "@/core/time";
 import { DayTiler } from "@/core/tilers";
-import { TimeMarker } from "@/component/shared";
 import {
   SlotIndicatorsLayer,
   SlotsLayer,
@@ -63,11 +58,4 @@ const layoutEventTiles = computed(() => {
 });
 </script>
 
-<style scoped lang="scss">
-.overlay-layer {
-  position: relative;
-  grid-row-start: 2;
-  grid-column-start: 2;
-  pointer-events: none;
-}
-</style>
+<style scoped lang="scss"></style>

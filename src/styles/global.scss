@@ -56,9 +56,16 @@ h6 {
 [data-scroll-sync="all"],
 [data-scroll-sync="x"] {
   overflow-x: scroll;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 [data-scroll-sync="all"],
 [data-scroll-sync="y"] {
   overflow-y: scroll;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

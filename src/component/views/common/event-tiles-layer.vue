@@ -1,5 +1,5 @@
 <template>
-  <div class="events-layer" data-scroll-sync="all">
+  <div class="events-layer">
     <div class="columns">
       <div
         class="events-column"
@@ -53,8 +53,6 @@ $total-slots: 1440 / $slot-size-minutes;
 
 .events-layer {
   pointer-events: none;
-  grid-row: 2 / -1;
-  grid-column: 2 / -1;
 }
 
 .columns {
@@ -64,7 +62,7 @@ $total-slots: 1440 / $slot-size-minutes;
 .events-column {
   display: grid;
   flex: 1 1 0;
-  min-width: 100px;
+  min-width: 120px;
   padding-right: $spacer-right;
 
   &__tiles {
