@@ -199,6 +199,8 @@ export class DayTiler<Event extends BaseEvent> {
             idx,
             tile.geometry.xOffset
           );
+
+        
         }
       });
     });

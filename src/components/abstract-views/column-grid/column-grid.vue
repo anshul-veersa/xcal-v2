@@ -244,6 +244,7 @@ onUnmounted(() => scrollSync.value?.destroy());
   --slot-height: calc(v-bind("config.slotHeight") * 1px);
   --slot-background: #fbfbfb;
   --slot-active-background: #d5eaea79;
+  --slot-gutter: 5%;
 
   --indicators-count: v-bind("slotIndicators.length");
 
@@ -391,6 +392,7 @@ onUnmounted(() => scrollSync.value?.destroy());
     }
 
     .events-layer {
+      padding-right: var(--slot-gutter);
       pointer-events: none;
       .event-tile {
         grid-column-start: 1;
