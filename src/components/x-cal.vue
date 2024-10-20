@@ -106,5 +106,6 @@ if (props.events.length > 1000) {
 </script>
 
 <style lang="scss">
+@import "@/styles/reset.scss";
 @import "@/styles/global.scss";
 </style>

@@ -1,6 +1,6 @@
 <template>
-  <div class="column-grid-layout" role="presentation">
-    <div class="corner">GMT+5</div>
+  <div class="column-grid-layout">
+    <div class="corner"></div>
 
     <div class="header" data-scroll-sync="x">
       <div class="header-items">
@@ -17,14 +17,15 @@
 
     <div class="content" data-scroll-sync="x">
       <div class="content-layout">
-        <div class="indicators">
+        <div class="time-indicators">
           <div
-            class="hour-indicator"
+            class="time-indicator"
             v-for="hourIndicator in slotIndicators"
             :key="hourIndicator.id"
+            :data-is-hour="hourIndicator.isHour"
           >
-            <span class="hour-indicator__label">{{ hourIndicator.label }}</span>
-            <div class="hour-indicator__rule" />
+            <span class="time-indicator__label">{{ hourIndicator.label }}</span>
+            <div class="time-indicator__rule" />
           </div>
         </div>
         <div class="columns">
@@ -42,6 +43,18 @@
                 <slot name="time-slot" v-bind="{ timeSlot }" />
               </div>
             </div>
+
+            <div class="separators-layer">
+              <div
+                class="separator"
+                v-for="hourIndicator in slotIndicators"
+                :key="hourIndicator.id"
+                :data-is-hour="hourIndicator.isHour"
+              >
+                <span class="separator__rule"></span>
+              </div>
+            </div>
+
             <div class="events-layer">
               <div
                 v-for="tile in eventTilesByColumn[colIdx].eventTiles"
@@ -101,14 +114,19 @@ const props = defineProps<{
 
 const t = inject<TimeUtils>(keys.TimeUtils)!;
 
-/** Configuration */
-const slotsStartsAt = t.startOfDay(t.today);
-const slotsEndsAt = t.endOfDay(t.today);
+const computedConfig = computed(() => {
+  const slotsStartsAt = t.startOfDay(t.today);
+  const slotsEndsAt = t.endOfDay(t.today);
 
-const slotsSpan = t.differenceInMinutes(slotsEndsAt, slotsStartsAt);
-const totalSlots = Math.ceil(slotsSpan / props.config.slotDuration);
-
-/**************** */
+  const slotsSpan = t.differenceInMinutes(slotsEndsAt, slotsStartsAt);
+  const totalSlots = Math.ceil(slotsSpan / props.config.slotDuration);
+  return {
+    slotsStartsAt,
+    slotsEndsAt,
+    slotsSpan,
+    totalSlots,
+  };
+});
 
 const tiler = new DayTiler(
   {
@@ -149,7 +167,7 @@ const slotsByColumn = computed(() => {
 
     return {
       id: column.id,
-      slots: Array.from({ length: totalSlots }, (_, i) => {
+      slots: Array.from({ length: computedConfig.value.totalSlots }, (_, i) => {
         const startTime = t.addMinutes(
             column.date,
             i * props.config.slotDuration
@@ -170,16 +188,25 @@ const slotsByColumn = computed(() => {
 });
 
 const slotIndicators = computed(() => {
-  const today = t.today;
-  const hours = t.eachHourOfInterval({
-    start: t.startOfDay(today),
-    end: t.addHours(t.endOfDay(today), 1),
-  });
+  const slotInterval = props.config.showSlotIndicators
+    ? props.config.slotDuration
+    : 60;
 
-  const indicators = hours.map((time) => {
+  const intervals = t.eachMinuteOfInterval(
+    {
+      start: computedConfig.value.slotsStartsAt,
+      end: computedConfig.value.slotsEndsAt,
+    },
+    { step: slotInterval }
+  );
+
+  intervals.push(t.addMinutes(intervals.at(-1)!, slotInterval));
+
+  const indicators = intervals.map((time) => {
     return {
       id: +time,
-      hour: time,
+      time,
+      isHour: time.getMinutes() === 0,
       label: t.format(time, props.config.hourIndicatorLabelFormat),
     };
   });
@@ -196,17 +223,32 @@ onUnmounted(() => scrollSync.value?.destroy());
 </script>
 
 <style lang="scss" scoped>
-$slot-height: 36px;
-$separator-color: rgba(0, 0, 0, 0.2);
-$column-min-width: 120px;
-$hour-indicator-height: 1px;
-$side-bar-width: 120px;
+.column-grid-layout {
+  --slots-count: v-bind("computedConfig.totalSlots");
+  --slot-height: calc(v-bind("config.slotHeight") * 1px);
+  --slot-background: #fbfbfb;
+  --slot-active-background: #d5eaea79;
+
+  --indicators-count: v-bind("slotIndicators.length");
+
+  --content-breathing-space: 16px 0;
+
+  --side-bar-background: #fff;
+  --side-bar-width: 120px;
+  --column-min-width: 100px;
+
+  --header-background: #fff;
+
+  --separator-color: rgba(0, 0, 0, 0.2);
+  --separator-color-secondary: rgba(0, 0, 0, 0.05);
+  --separator-thickness: 1px;
+
+  --tile-gap: 1px;
+}
 
 .column-grid-layout {
-  max-height: 600px;
   display: grid;
-  grid-template-columns: $side-bar-width 1fr;
-  grid-template-rows: 80px 1fr;
+  grid-template: auto 1fr / var(--side-bar-width) 1fr;
 }
 
 .content {
@@ -215,11 +257,10 @@ $side-bar-width: 120px;
   overflow-y: scroll;
 }
 
-.content .content-layout {
+.content-layout {
   position: relative;
   display: grid;
-  grid-template-columns: $side-bar-width 1fr;
-  padding: 16px 0;
+  grid-template-columns: var(--side-bar-width) 1fr;
 }
 
 .content-layout {
@@ -231,24 +272,96 @@ $side-bar-width: 120px;
   }
 }
 
+.time-indicators {
+  display: grid;
+  grid-template-rows: repeat(
+    calc(var(--indicators-count) - 1),
+    calc(
+      var(--slots-count) * var(--slot-height) / (var(--indicators-count) - 1)
+    )
+  );
+  left: 0;
+  position: sticky;
+  z-index: 1;
+  border-right: var(--separator-thickness) solid var(--separator-color);
+  background-color: var(--side-bar-background);
+  padding: var(--content-breathing-space);
+
+  .time-indicator {
+    display: flex;
+    align-items: center;
+    height: 0px;
+
+    &__label {
+      flex-shrink: 0;
+      text-align: right;
+      margin-right: 16px;
+      width: 64%;
+    }
+
+    &__rule {
+      width: 100%;
+      height: var(--separator-thickness);
+      background-color: var(--separator-color);
+    }
+
+    &:not([data-is-hour]) {
+      .time-indicator__rule {
+        background-color: var(--separator-color-secondary);
+      }
+    }
+  }
+}
+
 .columns {
   display: flex;
 
   .column {
-    flex: 1 1 0;
-    min-width: $column-min-width;
-    display: grid;
+    padding: var(--content-breathing-space);
 
-    &:not(:last-child) {
-      border-right: 1px solid $separator-color;
+    flex: 1 1 0;
+    min-width: var(--column-min-width);
+    display: grid;
+    border-right: var(--separator-thickness) solid var(--separator-color);
+
+    .separators-layer {
+      pointer-events: none;
+      grid-row-start: 1;
+      grid-column-start: 1;
+      display: grid;
+
+      grid-template-rows: repeat(
+        calc(var(--indicators-count) - 1),
+        calc(
+          var(--slots-count) * var(--slot-height) /
+            (var(--indicators-count) - 1)
+        )
+      );
+      .separator {
+        display: flex;
+        align-items: center;
+        height: 0px;
+
+        &__rule {
+          width: 100%;
+          height: var(--separator-thickness);
+          background-color: var(--separator-color);
+        }
+
+        &:not([data-is-hour]) {
+          .separator__rule {
+            background-color: var(--separator-color-secondary);
+          }
+        }
+      }
     }
 
     .slots-layer,
     .events-layer {
-      display: grid;
-      grid-template-rows: repeat(48, $slot-height);
       grid-row-start: 1;
       grid-column-start: 1;
+      display: grid;
+      grid-template-rows: repeat(var(--slots-count), var(--slot-height));
     }
 
     .events-layer {
@@ -256,78 +369,64 @@ $side-bar-width: 120px;
       .event-tile {
         grid-column-start: 1;
         position: relative;
-        margin: 1px 0;
+        margin: var(--tile-gap) 0;
         pointer-events: all;
       }
     }
 
     .slots-layer {
       .slot {
-        &:nth-child(2n) {
-          border-bottom: 0.5px solid $separator-color;
-        }
-        &:nth-child(2n + 1) {
-          border-top: 0.5px solid $separator-color;
-        }
+        // &:nth-child(2n) {
+        //   border-bottom: calc(var(--separator-thickness) / 2) solid
+        //     var(--separator-color);
+        // }
+        // &:nth-child(2n + 1) {
+        //   border-top: calc(var(--separator-thickness) / 2) solid
+        //     var(--separator-color);
+        // }
+        // &:first-child {
+        //   border-top: var(--separator-thickness) solid var(--separator-color);
+        // }
+        // &:last-child {
+        //   border-bottom: var(--separator-thickness) solid var(--separator-color);
+        // }
 
         &:hover {
-          background-color: #d5eaea79;
+          background-color: var(--slot-active-background);
         }
       }
     }
   }
 }
 
-.indicators {
-  border-right: 1px solid $separator-color;
-  z-index: 2;
-  position: sticky;
-  background-color: #fff;
-  left: 0;
-  --slot-height: 36px;
-  display: grid;
-  grid-template-rows: repeat(24, calc(var(--slot-height) * 2));
-}
-
-.hour-indicator {
-  display: flex;
-  align-items: center;
-  height: 0px;
-
-  &__label {
-    text-align: center;
-    font-size: 14px;
-    width: 90px;
-    flex-shrink: 0;
-  }
-
-  &__rule {
-    width: 100%;
-    height: $hour-indicator-height;
-    background-color: $separator-color;
-  }
-}
-
 .header {
   grid-row: 1 / 2;
   grid-column: 2 / -1;
-  border-bottom: 1px solid grey;
-  background-color: #fff;
-  overflow-x: scroll;
+  background-color: var(--header-background);
 
   .header-items {
-    list-style: none;
     display: flex;
-    align-items: center;
-    height: 100%;
-
     .header-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       flex: 1 1 0;
-      min-width: 120px;
+      min-width: var(--column-min-width);
     }
+  }
+}
+
+[data-scroll-sync="all"],
+[data-scroll-sync="x"] {
+  overflow-x: scroll;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+[data-scroll-sync="all"],
+[data-scroll-sync="y"] {
+  overflow-y: scroll;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 </style>

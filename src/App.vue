@@ -6,7 +6,12 @@
     <XCal
       :events="mockEvents"
       view="week"
-      :config="{ slotDuration: 30, maxEventsPerSlot: 6 }"
+      :config="{
+        slotDuration: 30,
+        maxEventsPerSlot: 6,
+        showSlotIndicators: true,
+      }"
+      class="calendar"
     >
       <template #time-slot="{ timeSlot }">
         <div class="bg-event" v-if="timeSlot.backgroundEvents">

@@ -31,6 +31,7 @@ import {
   setMonth,
   setYear,
   differenceInMinutes,
+  eachMinuteOfInterval,
 } from "date-fns";
 
 export class TimeUtils {
@@ -78,6 +79,7 @@ export class TimeUtils {
   /**
    * RANGE & INTERVAL UTILITIES
    */
+  eachMinuteOfInterval = eachMinuteOfInterval;
   eachDayOfInterval = eachDayOfInterval;
   eachWeekOfInterval = (range: { start: Date; end: Date }) =>
     eachWeekOfInterval(range, {
