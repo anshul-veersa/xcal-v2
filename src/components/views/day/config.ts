@@ -12,7 +12,7 @@ export type DayViewConfig = {
   slotHeight: number;
 };
 
-export function adaptConfig(xCalConfig: XCalConfig): DayViewConfig {
+export function adaptConfig<T, B>(xCalConfig: XCalConfig<T, B>): DayViewConfig {
   const viewConfig = xCalConfig.views?.day ?? {};
 
   return {

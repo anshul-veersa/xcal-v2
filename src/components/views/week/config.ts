@@ -22,7 +22,9 @@ export type WeekViewConfig = {
   showDays: Weekday[];
 };
 
-export function adaptConfig(xCalConfig: XCalConfig): WeekViewConfig {
+export function adaptConfig<T, B>(
+  xCalConfig: XCalConfig<T, B>
+): WeekViewConfig {
   const viewConfig = xCalConfig.views?.week ?? {};
 
   return {

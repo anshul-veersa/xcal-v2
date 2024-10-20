@@ -1,92 +1,85 @@
 <template>
   <div class="group-view">
-    <ColumnLayout>
-      <SlotIndicatorsLayer />
+    <ColumnGrid
+      :activeDate="data.date"
+      :columns="columns"
+      :config="{
+        slotDuration: config.slotDuration,
+        hourIndicatorLabelFormat: config.hourIndicatorLabelFormat,
+        maxEventsPerSlot: config.maxEventsPerSlot,
+        scrollTimeIntoView: config.scrollTimeIntoView,
+        showAllDaySlot: config.showAllDaySlot,
+        showCurrentTimeMarker: config.showCurrentTimeMarker,
+        showSlotIndicators: config.showSlotIndicators,
+        showSlotSeparator: config.showSlotSeparator,
+        slotHeight: config.slotHeight,
+      }"
+    >
+      <template #header-item="headerItem"></template>
 
-      <SlotsLayer
-        :columns="
-          groups.map((group) => ({
-            date: activeDate,
-            id: group.id,
-          }))
-        "
-        :slot-duration="config.slotDuration"
-      />
+      <template #event-tile="slotProps">
+        <slot name="event-tile" v-bind="slotProps" />
+      </template>
 
-      <EventTilesLayer :layout-event-tiles="layoutEventTiles">
-        <template #event-tile="slotProps">
-          <slot name="event-tile" v-bind="slotProps" />
-        </template>
-      </EventTilesLayer>
-    </ColumnLayout>
+      <template #time-slot="slotProps">
+        <slot name="time-slot" v-bind="slotProps" />
+      </template>
+    </ColumnGrid>
   </div>
 </template>
 
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="EventData, BGEventData">
 import { computed, inject } from "vue";
-import type { CalendarEvent, SlotDuration } from "@/types";
 import { TimeUtils } from "@/core/time";
-import { DayTiler } from "@/core/tilers";
-import {
-  SlotIndicatorsLayer,
-  SlotsLayer,
-  EventTilesLayer,
-  ColumnLayout,
-} from "@/component/views/common";
+
 import { groupBy } from "@/core/utils";
 
-export type Group = { id: string; events: CalendarEvent<T>[] };
+import { ColumnGrid } from "@/components/abstract-views";
+import { keys } from "@/assets/providers/keys";
+import { adaptConfig } from "./config";
 
-const { events, activeDate, config } = inject<{
-  events: Array<CalendarEvent<T>>;
-  activeDate: Date;
-  config: {
-    slotDuration: SlotDuration;
-    maxEventsPerSlot: number;
-    showCurrentTimeMarker: boolean;
-    showAllDaySlot: boolean;
-    groupSelector: (event: CalendarEvent<T>) => string;
-    groupSorter: (groups: Group[]) => Group[];
-  };
-}>("config")!;
+const t = inject<TimeUtils>(keys.TimeUtils)!;
 
-const t = inject<TimeUtils>("time_utils")!;
+const xCalConfig = inject(keys.XCalConfig)!;
+const config = computed(() => adaptConfig(xCalConfig));
 
-const tiler = new DayTiler(
-  {
-    maxPerSlot: config.maxEventsPerSlot,
-    slotDuration: config.slotDuration,
-  },
-  t
-);
+const data = inject(keys.CalendarData<EventData, BGEventData>())!;
 
-const groups = computed<Array<Group>>(() => {
-  if (!config.groupSelector)
-    throw new Error("Specify a group selector when using group view.");
-  if (!config.groupSorter)
-    throw new Error("Specify a group sorter when using group view.");
+const groups = computed(() => {
+  const eventsByGroup = groupBy(data.events, config.value.groupSelector);
+  const backgroundEventsByGroup = groupBy(
+    data.backgroundEvents,
+    config.value.groupSelector
+  );
 
-  const eventsByGroup = groupBy(events, config.groupSelector);
+  const combinedGroupIds = Array.from(
+    new Set([
+      ...Object.keys(eventsByGroup),
+      ...Object.keys(backgroundEventsByGroup),
+    ])
+  );
 
-  const sortedGroups = config.groupSorter(
-    Object.entries(eventsByGroup).map(([groupId, events]) => ({
+  const sortedGroups = config.value.groupOrderer(
+    combinedGroupIds.map((groupId) => ({
       id: groupId,
-      events: events!,
+      events: eventsByGroup[groupId] ?? [],
+      backgroundEvents: backgroundEventsByGroup[groupId] ?? [],
     }))
   );
 
   return sortedGroups;
 });
 
-const layoutEventTiles = computed(() => {
-  const layoutEvents = groups.value.map((group) => {
+const columns = computed(() => {
+  return groups.value.map((group) => {
     return {
       id: group.id,
-      eventTiles: tiler.getLayoutTiles(group.events, { date: activeDate }),
+      date: data.date,
+      header: { data: {} },
+      events: group.events,
+      backgroundEvents: group.backgroundEvents ?? [],
     };
   });
-
-  return layoutEvents;
 });
 </script>
 

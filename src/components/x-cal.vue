@@ -23,7 +23,6 @@ import type {
   CalendarEvent,
   CommonConfig,
   LocaleOptions,
-  SlotDuration,
   View,
 } from "@/types";
 import {
@@ -62,9 +61,7 @@ const props = withDefaults(defineProps<Props>(), {
   date: () => new Date(),
   config: () => ({}),
   views: () => ({}),
-  locale: () => ({
-    weekStartsOn: "monday",
-  }),
+  locale: () => ({}),
 });
 
 const emit = defineEmits<{

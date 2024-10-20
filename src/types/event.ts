@@ -10,6 +10,7 @@ export type BaseEvent = {
 
 /** Primary kind of events that are shown as tiles */
 export type CalendarEvent<EventData> = {
+  type: "tile";
   recurrencePattern?: string;
   data: EventData;
   config?: {
@@ -20,6 +21,7 @@ export type CalendarEvent<EventData> = {
 
 /** Secondary kind of events that are shown in the background */
 export type BackgroundEvent<EventData> = {
+  type: "background";
   data: EventData;
   recurrencePattern?: string;
   priority: number;

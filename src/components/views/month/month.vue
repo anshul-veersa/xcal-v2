@@ -50,23 +50,18 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="EventData, BGEventData">
 import { computed, inject } from "vue";
-import { TimeUtils } from "@/core/time";
-import type { CalendarEvent } from "@/types";
 import { MonthTiler } from "@/core/tilers";
+import { keys } from "@/assets/providers/keys";
+import { adaptConfig } from "./config";
 
-/** Locale aware time utilities */
-const t = inject<TimeUtils>("time_utils")!;
+const t = inject(keys.TimeUtils)!;
 
-const { events, activeDate, config } = inject<{
-  events: Array<CalendarEvent<T>>;
-  activeDate: Date;
-  config: {
-    maxEventsPerSlot: number;
-    showSiblingMonths: boolean;
-  };
-}>("config")!;
+const xCalConfig = inject(keys.XCalConfig)!;
+const config = computed(() => adaptConfig(xCalConfig));
+
+const data = inject(keys.CalendarData<EventData, BGEventData>())!;
 
 const weekDays = computed(() => {
   return t.daysOfWeek().map((d) => ({ ...d, label: d.label.toUpperCase() }));
@@ -85,8 +80,8 @@ type MonthWeeks = Array<{
   }>;
 }>;
 const monthWeeks = computed<MonthWeeks>(() => {
-  const calendarStart = t.startOfWeek(t.startOfMonth(activeDate));
-  const calendarEnd = t.endOfWeek(t.endOfMonth(activeDate));
+  const calendarStart = t.startOfWeek(t.startOfMonth(data.date));
+  const calendarEnd = t.endOfWeek(t.endOfMonth(data.date));
 
   const datesOnCalendar = t.eachDayOfInterval({
     start: calendarStart,
@@ -117,14 +112,13 @@ const calendarDates = computed(() => {
   return Object.entries(monthWeeks.value).flatMap(([_, d]) => d.days);
 });
 
-const tiler = new MonthTiler({ maxPerSlot: config.maxEventsPerSlot }, t);
-
+const tiler = new MonthTiler({ maxPerSlot: config.value.maxEventsPerSlot }, t);
 /**
  * Record of event tiles in series for each week of the month.
  * Used with CSS grid to place on the week layout.
  */
 const layoutEventTiles = computed(() => {
-  const layoutTiles = tiler.getLayoutTiles(events, {
+  const layoutTiles = tiler.getLayoutTiles(data.events, {
     range: {
       from: calendarDates.value.at(0)!.date,
       to: calendarDates.value.at(-1)!.date,

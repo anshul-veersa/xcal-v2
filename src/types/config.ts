@@ -1,6 +1,10 @@
-import type { WeekViewConfig } from "@/components/views/week/config";
-import type { BackgroundEvent, CalendarEvent } from "./event";
-import type { Views } from "@/components/views";
+import type {
+  DayViewConfig,
+  WeekViewConfig,
+  GroupViewConfig,
+  MonthViewConfig,
+  Views,
+} from "@/components/views";
 
 export type SlotDuration = 10 | 15 | 30 | 60;
 
@@ -22,14 +26,14 @@ export type LocaleOptions = {
   weekStartsOn: "monday" | "sunday";
 };
 
-export interface XCalConfig {
+export interface XCalConfig<EventData, BackgroundEventData> {
   view: View;
   config: Partial<CommonConfig>;
   locale: Partial<LocaleOptions>;
   views: {
-    day: Partial<WeekViewConfig>;
+    day: Partial<DayViewConfig>;
     week: Partial<WeekViewConfig>;
-    month: Partial<WeekViewConfig>;
-    group: Partial<WeekViewConfig>;
+    month: Partial<MonthViewConfig>;
+    group: Partial<GroupViewConfig<EventData, BackgroundEventData>>;
   };
 }
