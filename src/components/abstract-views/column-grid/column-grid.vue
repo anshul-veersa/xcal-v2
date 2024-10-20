@@ -20,11 +20,12 @@
         <div class="time-indicators">
           <div
             class="time-indicator"
-            v-for="hourIndicator in slotIndicators"
-            :key="hourIndicator.id"
-            :data-is-hour="hourIndicator.isHour"
+            v-for="indicator in slotIndicators"
+            :key="indicator.id"
+            :data-is-hour="indicator.isHour"
+            :data-scroll-into-view="indicator.scrollIntoView"
           >
-            <span class="time-indicator__label">{{ hourIndicator.label }}</span>
+            <span class="time-indicator__label">{{ indicator.label }}</span>
             <div class="time-indicator__rule" />
           </div>
         </div>
@@ -173,6 +174,7 @@ const slotsByColumn = computed(() => {
       }
     });
 
+
     return {
       id: column.id,
       slots: Array.from({ length: computedConfig.value.totalSlots }, (_, i) => {
@@ -200,6 +202,8 @@ const slotIndicators = computed(() => {
     ? props.config.slotDuration
     : 60;
 
+  const nearestSlotToScroll = t.roundToNearestMinutes(props.config.scrollTimeIntoView, { nearestTo: 30 })
+
   const intervals = t.eachMinuteOfInterval(
     {
       start: computedConfig.value.slotsStartsAt,
@@ -216,6 +220,7 @@ const slotIndicators = computed(() => {
       time,
       isHour: time.getMinutes() === 0,
       label: t.format(time, props.config.hourIndicatorLabelFormat),
+      scrollIntoView: t.isSameMinute(nearestSlotToScroll, time)
     };
   });
 
@@ -226,6 +231,9 @@ const scrollSync = ref<ScrollSync>();
 onMounted(() => {
   scrollSync.value = new ScrollSync("data-scroll-sync");
   scrollSync.value.mount();
+
+  document.querySelector(`[data-scroll-into-view="true"]`)?.scrollIntoView()
+
 });
 onUnmounted(() => scrollSync.value?.destroy());
 </script>
@@ -251,7 +259,7 @@ onUnmounted(() => scrollSync.value?.destroy());
   --separator-color-secondary: rgba(0, 0, 0, 0.05);
   --separator-thickness: 1px;
 
-  --tile-gap: 1px;
+  --tile-gap: 2px;
   --tile-min-width: 10px;
 }
 
@@ -264,7 +272,7 @@ onUnmounted(() => scrollSync.value?.destroy());
 .content {
   grid-row: 2 / -1;
   grid-column: 1 / -1;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .content-layout {
@@ -423,11 +431,11 @@ onUnmounted(() => scrollSync.value?.destroy());
 
 [data-scroll-sync="all"],
 [data-scroll-sync="x"] {
-  overflow-x: scroll;
+  overflow-x: auto;
 }
 
 [data-scroll-sync="all"],
 [data-scroll-sync="y"] {
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 </style>
