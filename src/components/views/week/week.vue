@@ -16,7 +16,14 @@
       }"
     >
       <template #header-item="headerItem">
-        {{ headerItem.label }}
+        <div class="week-header-day">
+          <span class="week-header-day__name">{{
+            t.format(headerItem.date, "EEE")
+          }}</span>
+          <span class="week-header-day__date">{{
+            t.format(headerItem.date, "dd")
+          }}</span>
+        </div>
       </template>
 
       <template #event-tile="slotProps">
@@ -58,7 +65,7 @@ const columns = computed(() => {
       id: +day,
       date: day,
       header: {
-        data: { label: t.format(day, "EEE") },
+        data: { date: day },
         attributes: { "data-week-day": day, "data-date": day },
       },
       events: data.events,
@@ -69,4 +76,26 @@ const columns = computed(() => {
 });
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.week-view {
+  width: 100%;
+  height: 100%;
+}
+
+.week-header-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+
+  &__date {
+    font-size: 1rem;
+  }
+
+  &__name {
+    font-size: 0.8rem;
+  }
+}
+</style>

@@ -15,7 +15,9 @@
         slotHeight: config.slotHeight,
       }"
     >
-      <template #header-item="headerItem"></template>
+      <template #header-item="slotProps">
+        <slot name="event-tile" v-bind="slotProps" />
+      </template>
 
       <template #event-tile="slotProps">
         <slot name="event-tile" v-bind="slotProps" />
@@ -75,7 +77,7 @@ const columns = computed(() => {
     return {
       id: group.id,
       date: data.date,
-      header: { data: {} },
+      header: { data: { groupId: group.id } },
       events: group.events,
       backgroundEvents: group.backgroundEvents ?? [],
     };

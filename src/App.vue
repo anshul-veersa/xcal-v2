@@ -1,15 +1,13 @@
 <template>
   <div id="app">
-    <header>
-      <h2>XCal Preview</h2>
-    </header>
     <XCal
       :events="mockEvents"
       view="week"
       :config="{
         slotDuration: 30,
-        maxEventsPerSlot: 6,
+        maxEventsPerSlot: 10,
         showSlotIndicators: true,
+        slotHeight: 36,
       }"
       class="calendar"
     >
@@ -86,5 +84,10 @@ const mockEvents = createMonthData(new Date(), 100);
   color: #fe011f46;
   font-weight: 500;
   align-items: center;
+}
+
+.calendar {
+  width: 90vw;
+  height: 80vh;
 }
 </style>

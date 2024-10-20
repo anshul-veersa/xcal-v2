@@ -1,5 +1,5 @@
 <template>
-  <div class="view__month">
+  <div class="month-view">
     <div class="month-layout">
       <header class="month-header">
         <div
