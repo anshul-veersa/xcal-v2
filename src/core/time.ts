@@ -31,7 +31,6 @@ import {
   setMonth,
   setYear,
   differenceInMinutes,
-  roundToNearestMinutes,
 } from "date-fns";
 
 export class TimeUtils {
@@ -101,6 +100,7 @@ export class TimeUtils {
       // locale options
     });
   }
+  parseWeekday(weekDay: string) {}
 
   getWeek = (date: Date) =>
     getWeek(date, { weekStartsOn: this.locale.options?.weekStartsOn });

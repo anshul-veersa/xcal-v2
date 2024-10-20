@@ -1,5 +1,6 @@
 export type EventID = number | string | bigint;
 
+/** Must haves for any kind of event */
 export type BaseEvent = {
   id: EventID;
   priority?: number;
@@ -7,6 +8,7 @@ export type BaseEvent = {
   endsAt: Date;
 };
 
+/** Primary kind of events that are shown as tiles */
 export type CalendarEvent<EventData> = {
   recurrencePattern?: string;
   data: EventData;
@@ -16,14 +18,16 @@ export type CalendarEvent<EventData> = {
   };
 } & BaseEvent;
 
+/** Secondary kind of events that are shown in the background */
 export type BackgroundEvent<EventData> = {
   data: EventData;
   recurrencePattern?: string;
   priority: number;
 } & BaseEvent;
 
-export type BaseEventTile<T extends BaseEvent> = {
+/** Base tile, varies across views */
+export type BaseEventTile<TileEvent extends BaseEvent> = {
   id: number;
   continuous: { start: boolean; end: boolean };
-  event: T;
+  event: TileEvent;
 };

@@ -1,7 +1,6 @@
 export class ScrollSync {
   private syncedScrollElements: { x: HTMLElement[]; y: HTMLElement[] };
   private abortController: AbortController;
-  private isSyncingFor?: Element;
 
   constructor(private readonly selector: string) {
     const elementsToSync = Array.from<HTMLElement>(

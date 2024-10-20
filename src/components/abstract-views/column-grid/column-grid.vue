@@ -74,6 +74,7 @@ import type { BackgroundEvent, CalendarEvent, SlotDuration } from "@/types";
 import { TimeUtils } from "@/core/time";
 import { DayTiler } from "@/core/tilers";
 import { ScrollSync } from "@/core/scroll-sync";
+import { keys } from "@/assets/providers/keys";
 
 const props = defineProps<{
   activeDate: Date;
@@ -98,14 +99,14 @@ const props = defineProps<{
   }>;
 }>();
 
-const t = inject<TimeUtils>("time_utils")!;
+const t = inject<TimeUtils>(keys.TimeUtils)!;
 
 /** Configuration */
 const slotsStartsAt = t.startOfDay(t.today);
 const slotsEndsAt = t.endOfDay(t.today);
 
 const slotsSpan = t.differenceInMinutes(slotsEndsAt, slotsStartsAt);
-const totalSlots = Math.floor(slotsSpan / props.config.slotDuration);
+const totalSlots = Math.ceil(slotsSpan / props.config.slotDuration);
 
 /**************** */
 
@@ -186,9 +187,12 @@ const slotIndicators = computed(() => {
   return indicators;
 });
 
-const scrollSync = ref<ScrollSync>(new ScrollSync("data-scroll-sync"));
-onMounted(() => scrollSync.value.mount());
-onUnmounted(() => scrollSync.value.destroy());
+const scrollSync = ref<ScrollSync>();
+onMounted(() => {
+  scrollSync.value = new ScrollSync("data-scroll-sync");
+  scrollSync.value.mount();
+});
+onUnmounted(() => scrollSync.value?.destroy());
 </script>
 
 <style lang="scss" scoped>
@@ -309,7 +313,7 @@ $side-bar-width: 120px;
   grid-column: 2 / -1;
   border-bottom: 1px solid grey;
   background-color: #fff;
-  overflow: scroll;
+  overflow-x: scroll;
 
   .header-items {
     list-style: none;

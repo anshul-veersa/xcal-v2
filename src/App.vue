@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import XCal from "@/component/x-cal.vue";
+import XCal from "@/components/x-cal.vue";
 import { createMonthData, createDayData } from "@/tests/data";
 import { format } from "date-fns";
 
