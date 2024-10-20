@@ -15,8 +15,6 @@
         slotHeight: config.slotHeight,
       }"
     >
-      <template #header-item="headerItem"> Monday </template>
-
       <template #event-tile="slotProps">
         <slot name="event-tile" v-bind="slotProps" />
       </template>
@@ -34,24 +32,29 @@ import { ColumnGrid } from "@/components/abstract-views";
 import { keys } from "@/assets/providers/keys";
 import { adaptConfig } from "./config";
 
-const xCalConfig = inject(keys.XCalConfig)!;
-const config = computed(() => adaptConfig(xCalConfig));
+const xCalConfig = inject(keys.XCalConfig<EventData, BGEventData>())!;
+const config = computed(() => adaptConfig(xCalConfig.value));
 
 const data = inject(keys.CalendarData<EventData, BGEventData>())!;
 
 const dayColumn = computed(() => {
   return {
-    id: data.date.getDate(),
-    date: data.date,
+    id: data.value.date.getDate(),
+    date: data.value.date,
     header: {
       data: {},
       attributes: {},
     },
-    events: data.events,
-    backgroundEvents: data.backgroundEvents,
+    events: data.value.events,
+    backgroundEvents: data.value.backgroundEvents,
     attributes: {},
   };
 });
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.day-view {
+  width: 100%;
+  height: 100%;
+}
+</style>

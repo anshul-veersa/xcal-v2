@@ -63,8 +63,12 @@
                 :style="{
                   gridRowStart: tile.geometry.yStart + 1,
                   gridRowEnd: tile.geometry.yEnd + 1,
-                  width: `calc(${tile.geometry.width * 100 + '%'} - 2px)`,
-                  left: `calc(${tile.geometry.xOffset * 100 + '%'} + 1px)`,
+                  width: `calc(${
+                    tile.geometry.width * 100
+                  }% - (var(--tile-gap) * 2))`,
+                  left: `calc(${
+                    tile.geometry.xOffset * 100
+                  }% + var(--tile-gap))`,
                 }"
               >
                 <slot name="event-tile" v-bind="{ event: tile.event, tile }" />
@@ -154,7 +158,11 @@ const slotsByColumn = computed(() => {
       number,
       BackgroundEvent<BackgroundEventData>[]
     > = {};
-    column.backgroundEvents.forEach((event) => {
+
+    const backgroundEventsSortedByPriority = column.backgroundEvents.toSorted(
+      (e1, e2) => e2.priority - e1.priority
+    );
+    backgroundEventsSortedByPriority.forEach((event) => {
       const keyRange = {
         from: getSlotKey(event.startsAt),
         to: getSlotKey(event.endsAt),
@@ -234,7 +242,7 @@ onUnmounted(() => scrollSync.value?.destroy());
   --content-breathing-space: 16px 0;
 
   --side-bar-background: #fff;
-  --side-bar-width: 80px;
+  --side-bar-width: 100px;
   --column-min-width: 100px;
 
   --header-background: #fff;
@@ -244,7 +252,7 @@ onUnmounted(() => scrollSync.value?.destroy());
   --separator-thickness: 1px;
 
   --tile-gap: 1px;
-  --tile-min-width: 40px;
+  --tile-min-width: 10px;
 }
 
 .column-grid-layout {
@@ -298,7 +306,7 @@ onUnmounted(() => scrollSync.value?.destroy());
       flex-shrink: 0;
       text-align: right;
       margin-right: 16px;
-      width: 50%;
+      width: 64%;
     }
 
     &__rule {
@@ -310,6 +318,10 @@ onUnmounted(() => scrollSync.value?.destroy());
     &:not([data-is-hour]) {
       .time-indicator__rule {
         background-color: var(--separator-color-secondary);
+      }
+
+      .time-indicator__label {
+        font-size: 0.8rem;
       }
     }
   }
@@ -325,7 +337,10 @@ onUnmounted(() => scrollSync.value?.destroy());
     flex: 1 1 0;
     min-width: var(--column-min-width);
     display: grid;
-    border-right: var(--separator-thickness) solid var(--separator-color);
+
+    &:not(:last-child) {
+      border-right: var(--separator-thickness) solid var(--separator-color);
+    }
 
     .separators-layer {
       pointer-events: none;
@@ -393,6 +408,10 @@ onUnmounted(() => scrollSync.value?.destroy());
   grid-column: 2 / -1;
   background-color: var(--header-background);
 
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
   .header-items {
     display: flex;
     .header-item {
@@ -405,17 +424,10 @@ onUnmounted(() => scrollSync.value?.destroy());
 [data-scroll-sync="all"],
 [data-scroll-sync="x"] {
   overflow-x: scroll;
-  &::-webkit-scrollbar {
-    display: none;
-  }
 }
 
 [data-scroll-sync="all"],
 [data-scroll-sync="y"] {
   overflow-y: scroll;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 }
 </style>

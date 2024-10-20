@@ -21,5 +21,25 @@ export default defineConfig({
     port: 4000,
     host: "0.0.0.0",
   },
-  envPrefix: "CLIENT_",
+  build: {
+    copyPublicDir: false,
+    rollupOptions: {
+      external: ["vue"],
+      output: {
+        // disable warning on src/index.ts using both default and named export
+        exports: "named",
+        // Provide global variables to use in the UMD build
+        // for externalized deps (not useful if 'umd' is not in lib.formats)
+        globals: {
+          vue: "Vue",
+        },
+      },
+    },
+    lib: {
+      entry: path.resolve(__dirname, "src/main.ts"),
+      name: "xcal-v2",
+      formats: ["es"],
+      fileName: (format) => `xcal-v2.${format}.js`,
+    },
+  },
 });

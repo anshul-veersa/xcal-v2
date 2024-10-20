@@ -16,7 +16,7 @@
       }"
     >
       <template #header-item="slotProps">
-        <slot name="event-tile" v-bind="slotProps" />
+        <slot name="header-item" v-bind="slotProps" />
       </template>
 
       <template #event-tile="slotProps">
@@ -32,7 +32,6 @@
 
 <script setup lang="ts" generic="EventData, BGEventData">
 import { computed, inject } from "vue";
-import { TimeUtils } from "@/core/time";
 
 import { groupBy } from "@/core/utils";
 
@@ -40,17 +39,15 @@ import { ColumnGrid } from "@/components/abstract-views";
 import { keys } from "@/assets/providers/keys";
 import { adaptConfig } from "./config";
 
-const t = inject<TimeUtils>(keys.TimeUtils)!;
-
-const xCalConfig = inject(keys.XCalConfig)!;
-const config = computed(() => adaptConfig(xCalConfig));
+const xCalConfig = inject(keys.XCalConfig<EventData, BGEventData>())!;
+const config = computed(() => adaptConfig(xCalConfig.value));
 
 const data = inject(keys.CalendarData<EventData, BGEventData>())!;
 
 const groups = computed(() => {
-  const eventsByGroup = groupBy(data.events, config.value.groupSelector);
+  const eventsByGroup = groupBy(data.value.events, config.value.groupSelector);
   const backgroundEventsByGroup = groupBy(
-    data.backgroundEvents,
+    data.value.backgroundEvents,
     config.value.groupSelector
   );
 
@@ -76,7 +73,7 @@ const columns = computed(() => {
   return groups.value.map((group) => {
     return {
       id: group.id,
-      date: data.date,
+      date: data.value.date,
       header: { data: { groupId: group.id } },
       events: group.events,
       backgroundEvents: group.backgroundEvents ?? [],
@@ -85,4 +82,9 @@ const columns = computed(() => {
 });
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.group-view {
+  width: 100%;
+  height: 100%;
+}
+</style>

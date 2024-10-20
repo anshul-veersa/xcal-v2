@@ -1,15 +1,26 @@
 {
   "name": "xcal-v2",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
+  "files": [
+    "src",
+    "dist"
+  ],
+  "module": "./dist/xcal-v2.es.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/xcal-v2.es.js"
+    },
+    "./dist/style.css": "./dist/style.css"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview"
   },
   "dependencies": {
-    "date-fns": "^4.1.0",
-    "vue": "^2.7.16"
+    "date-fns": "^4.1.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.0.3",
@@ -17,5 +28,8 @@
     "@vitejs/plugin-vue2": "^2.3.1",
     "sass": "^1.79.5",
     "vite": "^5.4.8"
+  },
+  "peerDependencies": {
+    "vue": "^2.7.16"
   }
 }

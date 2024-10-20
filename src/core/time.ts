@@ -17,19 +17,7 @@ import {
   isWithinInterval,
   startOfDay,
   endOfDay,
-  eachHourOfInterval,
-  addHours,
   addMinutes,
-  eachMonthOfInterval,
-  startOfYear,
-  endOfYear,
-  addMonths,
-  isSameMonth,
-  isSameYear,
-  addYears,
-  setDate,
-  setMonth,
-  setYear,
   differenceInMinutes,
   eachMinuteOfInterval,
 } from "date-fns";
@@ -47,8 +35,6 @@ export class TimeUtils {
   isAfter = isAfter;
   isBefore = isBefore;
   isSameDay = isSameDay;
-  isSameMonth = isSameMonth;
-  isSameYear = isSameYear;
   isBetween = isWithinInterval;
 
   /**
@@ -56,10 +42,7 @@ export class TimeUtils {
    */
   addDays = addDays;
   addWeeks = addWeeks;
-  addHours = addHours;
   addMinutes = addMinutes;
-  addMonths = addMonths;
-  addYears = addYears;
   differenceInMinutes = differenceInMinutes;
 
   /**
@@ -73,8 +56,6 @@ export class TimeUtils {
     endOfWeek(date, { weekStartsOn: this.locale.options?.weekStartsOn });
   startOfDay = startOfDay;
   endOfDay = endOfDay;
-  startOfYear = startOfYear;
-  endOfYear = endOfYear;
 
   /**
    * RANGE & INTERVAL UTILITIES
@@ -85,9 +66,7 @@ export class TimeUtils {
     eachWeekOfInterval(range, {
       weekStartsOn: this.locale.options?.weekStartsOn,
     });
-  eachMonthOfInterval = eachMonthOfInterval;
   differenceInCalendarDays = differenceInCalendarDays;
-  eachHourOfInterval = eachHourOfInterval;
   minutesSinceEpoch(time: Date) {
     const msSinceEpoch = time.valueOf();
     return msSinceEpoch / 60_000;
@@ -102,7 +81,6 @@ export class TimeUtils {
       // locale options
     });
   }
-  parseWeekday(weekDay: string) {}
 
   getWeek = (date: Date) =>
     getWeek(date, { weekStartsOn: this.locale.options?.weekStartsOn });
@@ -111,9 +89,6 @@ export class TimeUtils {
   getMinutesPassedInDay = (date: Date) =>
     date.getHours() * 60 + date.getMinutes();
 
-  setDate = setDate;
-  setMonth = setMonth;
-  setYear = setYear;
 
   daysOfWeek(format: string = "EEE") {
     const date = new Date();

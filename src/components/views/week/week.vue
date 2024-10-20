@@ -47,30 +47,36 @@ import { adaptConfig } from "./config";
 
 const t = inject<TimeUtils>(keys.TimeUtils)!;
 
-const xCalConfig = inject(keys.XCalConfig)!;
-const config = computed(() => adaptConfig(xCalConfig));
+const xCalConfig = inject(keys.XCalConfig<EventData, BGEventData>())!;
+const config = computed(() => adaptConfig(xCalConfig.value));
 
 const data = inject(keys.CalendarData<EventData, BGEventData>())!;
 
 const weekDays = computed(() => {
   return t.eachDayOfInterval({
-    start: t.startOfWeek(data.date),
-    end: t.endOfWeek(data.date),
+    start: t.startOfWeek(data.value.date),
+    end: t.endOfWeek(data.value.date),
   });
 });
 
 const columns = computed(() => {
   return weekDays.value.map((day) => {
+    const isToday = t.isSameDay(t.today, day);
+
     return {
       id: +day,
       date: day,
       header: {
         data: { date: day },
-        attributes: { "data-week-day": day, "data-date": day },
+        attributes: {
+          "data-week-day": day,
+          "data-date": day,
+          "data-is-today": isToday,
+        },
       },
-      events: data.events,
-      backgroundEvents: data.backgroundEvents,
-      attributes: {},
+      events: data.value.events,
+      backgroundEvents: data.value.backgroundEvents,
+      attributes: { "data-is-today": isToday },
     };
   });
 });
@@ -87,8 +93,9 @@ const columns = computed(() => {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  border-right: 1px solid rgba(0, 0, 0, 0.2);
+
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 4px 0;
 
   &__date {
     font-size: 1rem;

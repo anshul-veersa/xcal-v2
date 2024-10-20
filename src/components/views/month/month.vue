@@ -58,8 +58,8 @@ import { adaptConfig } from "./config";
 
 const t = inject(keys.TimeUtils)!;
 
-const xCalConfig = inject(keys.XCalConfig)!;
-const config = computed(() => adaptConfig(xCalConfig));
+const xCalConfig = inject(keys.XCalConfig<EventData, BGEventData>())!;
+const config = computed(() => adaptConfig(xCalConfig.value));
 
 const data = inject(keys.CalendarData<EventData, BGEventData>())!;
 
@@ -80,8 +80,8 @@ type MonthWeeks = Array<{
   }>;
 }>;
 const monthWeeks = computed<MonthWeeks>(() => {
-  const calendarStart = t.startOfWeek(t.startOfMonth(data.date));
-  const calendarEnd = t.endOfWeek(t.endOfMonth(data.date));
+  const calendarStart = t.startOfWeek(t.startOfMonth(data.value.date));
+  const calendarEnd = t.endOfWeek(t.endOfMonth(data.value.date));
 
   const datesOnCalendar = t.eachDayOfInterval({
     start: calendarStart,
@@ -118,7 +118,7 @@ const tiler = new MonthTiler({ maxPerSlot: config.value.maxEventsPerSlot }, t);
  * Used with CSS grid to place on the week layout.
  */
 const layoutEventTiles = computed(() => {
-  const layoutTiles = tiler.getLayoutTiles(data.events, {
+  const layoutTiles = tiler.getLayoutTiles(data.value.events, {
     range: {
       from: calendarDates.value.at(0)!.date,
       to: calendarDates.value.at(-1)!.date,

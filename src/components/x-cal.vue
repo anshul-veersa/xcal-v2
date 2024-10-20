@@ -3,7 +3,7 @@
     <keep-alive :max="2">
       <component :is="activeView.component">
         <template #header-item="slotProps">
-          <slot name="event-tile" v-bind="slotProps" />
+          <slot name="header-item" v-bind="slotProps" />
         </template>
 
         <template #event-tile="slotProps">
@@ -73,23 +73,29 @@ const emit = defineEmits<{
   slotClick: [];
 }>();
 
-provide(keys.XCalConfig, {
-  config: props.config,
-  locale: props.locale,
-  view: props.view,
-  views: {
-    day: props.views.day,
-    week: props.views.week,
-    month: props.views.month,
-    group: props.views?.group,
-  },
+const calendarData = computed(() => {
+  return {
+    events: props.events,
+    backgroundEvents: props.backgroundEvents,
+    date: props.date,
+  };
 });
+provide(keys.CalendarData<EventData, BackgroundEventData>(), calendarData);
 
-provide(keys.CalendarData<EventData, BackgroundEventData>(), {
-  events: props.events,
-  backgroundEvents: props.backgroundEvents,
-  date: props.date,
+const xCalConfig = computed(() => {
+  return {
+    config: props.config,
+    locale: props.locale,
+    view: props.view,
+    views: {
+      day: props.views.day,
+      week: props.views.week,
+      month: props.views.month,
+      group: props.views?.group,
+    },
+  };
 });
+provide(keys.XCalConfig<EventData, BackgroundEventData>(), xCalConfig);
 
 provide(
   keys.TimeUtils,
@@ -100,16 +106,10 @@ provide(
   })
 );
 
-const activeView = computed(() => Views[props.view]);
-
-if (props.events.length > 1000) {
-  console.warn(
-    `A large number of passed events (received ${props.events.length} events) can degrade performance of XCal. Consider limiting the number of events.`
-  );
-}
+const activeView = computed(() => Views[props.view ?? 'day'] ?? Views['day']);
 </script>
 
 <style lang="scss">
-@import "@/styles/reset.scss";
-@import "@/styles/global.scss";
+@use "@/styles/reset.scss";
+@use "@/styles/global.scss";
 </style>
