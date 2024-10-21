@@ -174,7 +174,6 @@ const slotsByColumn = computed(() => {
       }
     });
 
-
     return {
       id: column.id,
       slots: Array.from({ length: computedConfig.value.totalSlots }, (_, i) => {
@@ -202,7 +201,10 @@ const slotIndicators = computed(() => {
     ? props.config.slotDuration
     : 60;
 
-  const nearestSlotToScroll = t.roundToNearestMinutes(props.config.scrollTimeIntoView, { nearestTo: 30 })
+  const nearestSlotToScroll = t.roundToNearestMinutes(
+    props.config.scrollTimeIntoView,
+    { nearestTo: 30 }
+  );
 
   const intervals = t.eachMinuteOfInterval(
     {
@@ -220,7 +222,7 @@ const slotIndicators = computed(() => {
       time,
       isHour: time.getMinutes() === 0,
       label: t.format(time, props.config.hourIndicatorLabelFormat),
-      scrollIntoView: t.isSameMinute(nearestSlotToScroll, time)
+      scrollIntoView: t.isSameMinute(nearestSlotToScroll, time),
     };
   });
 
@@ -232,8 +234,7 @@ onMounted(() => {
   scrollSync.value = new ScrollSync("data-scroll-sync");
   scrollSync.value.mount();
 
-  document.querySelector(`[data-scroll-into-view="true"]`)?.scrollIntoView()
-
+  document.querySelector(`[data-scroll-into-view="true"]`)?.scrollIntoView();
 });
 onUnmounted(() => scrollSync.value?.destroy());
 </script>
@@ -411,6 +412,10 @@ onUnmounted(() => scrollSync.value?.destroy());
       }
     }
   }
+}
+
+.corner {
+  border-bottom: 1px solid var(--separator-color);
 }
 
 .header {

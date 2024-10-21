@@ -130,6 +130,12 @@ const layoutEventTiles = computed(() => {
 </script>
 
 <style scoped lang="scss">
+.month-view {
+  overflow-y: auto;
+  height: 100%;
+  width: 100%;
+}
+
 .month-layout {
   display: flex;
   flex-flow: column nowrap;
@@ -201,7 +207,7 @@ const layoutEventTiles = computed(() => {
     height: 32px;
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: 4;
     background-color: #fff;
 
     .date-label {

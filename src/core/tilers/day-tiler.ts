@@ -45,15 +45,15 @@ export class DayTiler<Event extends BaseEvent> {
     );
   }
 
-  private getYOffset(time: Date): number {
+  private getYOffset(time: Date, bound: "start" | "end"): number {
     const offsetMinutes = this.time.getTimeOffsetFromDateInMinutes(
       this.range.start,
       time
     );
     const clampedOffset = clamp(0, this.time.minutesInDay, offsetMinutes);
-    return Math.floor(
-      (clampedOffset / this.time.minutesInDay) * this.slotsInDay
-    );
+    const offset = (clampedOffset / this.time.minutesInDay) * this.slotsInDay;
+
+    return bound === "start" ? Math.floor(offset) : Math.ceil(offset);
   }
 
   private createTiles(events: Event[]): Tile<Event>[] {
@@ -68,8 +68,8 @@ export class DayTiler<Event extends BaseEvent> {
       geometry: {
         xOffset: UNSET_VALUE,
         width: UNSET_VALUE,
-        yStart: this.getYOffset(event.startsAt),
-        yEnd: this.getYOffset(event.endsAt),
+        yStart: this.getYOffset(event.startsAt, "start"),
+        yEnd: this.getYOffset(event.endsAt, "end"),
       },
       continuous: {
         start: this.time.isBefore(event.startsAt, this.range.start),
@@ -167,17 +167,17 @@ export class DayTiler<Event extends BaseEvent> {
     };
 
     // Create tiles from events
-    const tiles = this.createTiles(events);
+    const eventTiles = this.createTiles(events);
 
     // Arrange tiles by earliest and lengthiest first
-    tiles.sort(
+    eventTiles.sort(
       (tileA, tileB) =>
         tileA.geometry.yStart - tileB.geometry.yStart ||
         tileB.geometry.yEnd - tileA.geometry.yEnd
     );
 
     // Add forward and backward links between tiles and arrange in columns
-    const columnedTiles = this.setColumns(tiles);
+    const columnedTiles = this.setColumns(eventTiles);
 
     // Find the longest connected tiles with all tiles covered
     const connectedComponents = new ConnectedComponents(columnedTiles);
@@ -199,13 +199,11 @@ export class DayTiler<Event extends BaseEvent> {
             idx,
             tile.geometry.xOffset
           );
-
-        
         }
       });
     });
 
-    return tiles;
+    return columnedTiles;
   }
 }
 
